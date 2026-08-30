@@ -297,10 +297,8 @@ def convert_rows(
             {
                 "id": case_id,
                 "model_id": model_id,
-                "problem": {
-                    "original_problem": row["original_problem"],
-                    "permutation_type": list(permutation_type),
-                },
+                "problem": row["original_problem"],
+                "permutation_type": list(permutation_type),
             }
         )
         labels.append(
