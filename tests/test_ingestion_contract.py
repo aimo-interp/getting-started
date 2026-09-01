@@ -10,7 +10,6 @@ import unittest
 from pathlib import Path
 from types import ModuleType
 
-
 ROOT = Path(__file__).resolve().parents[1]
 INGESTION_PATH = ROOT / "components" / "ingestion_program" / "ingestion.py"
 
@@ -43,7 +42,7 @@ class IngestionContractTests(unittest.TestCase):
         directory.mkdir(parents=True)
         (directory / "solution.py").write_text(source, encoding="utf-8")
 
-    def test_accepts_exact_string_list_signature(self) -> None:
+    def test_accepts_documented_string_list_signature(self) -> None:
         """Accept the documented annotated entry-point signature."""
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -57,27 +56,18 @@ class IngestionContractTests(unittest.TestCase):
             module = INGESTION.load_solution(submission)
         self.assertTrue(callable(module.are_robust))
 
-    def test_rejects_legacy_problem_dataclass_signature(self) -> None:
-        """Reject the superseded list-of-Problem adapter contract."""
+    def test_annotations_are_not_required(self) -> None:
+        """Require a callable without imposing runtime annotation checks."""
 
         with tempfile.TemporaryDirectory() as temporary:
             submission = Path(temporary) / "submission"
             self.write_solution(
                 submission,
-                "from dataclasses import dataclass\n\n"
-                "@dataclass\n"
-                "class Problem:\n"
-                "    original_problem: str\n"
-                "    permutation_type: list[str]\n\n"
-                "def are_robust(model_id: str, problems: list[Problem]) "
-                "-> list[bool]:\n"
+                "def are_robust(model_id, problems):\n"
                 "    return [False for _ in problems]\n",
             )
-            with self.assertRaisesRegex(
-                INGESTION.IngestionError,
-                r"problems: list\[str\]",
-            ):
-                INGESTION.load_solution(submission)
+            module = INGESTION.load_solution(submission)
+        self.assertTrue(callable(module.are_robust))
 
     def test_run_passes_only_original_problem_strings(self) -> None:
         """Pass ordered original-problem strings to participant code."""
@@ -100,18 +90,12 @@ class IngestionContractTests(unittest.TestCase):
                 {
                     "id": "first",
                     "model_id": "example/model",
-                    "problem": {
-                        "original_problem": "robust example",
-                        "permutation_type": ["rephrase"],
-                    },
+                    "problem": "robust example",
                 },
                 {
                     "id": "second",
                     "model_id": "example/model",
-                    "problem": {
-                        "original_problem": "non-robust example",
-                        "permutation_type": ["domain"],
-                    },
+                    "problem": "non-robust example",
                 },
             ]
             (input_dir / "cases.jsonl").write_text(
@@ -132,6 +116,46 @@ class IngestionContractTests(unittest.TestCase):
             [True, False],
         )
         self.assertTrue(all(prediction["valid"] for prediction in predictions))
+
+    def test_main_track_rejects_small_marker_case_insensitively(self) -> None:
+        """Reject a small-track archive before importing participant code."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            submission = root / "submission"
+            self.write_solution(
+                submission,
+                "raise RuntimeError('solution must not be imported')\n",
+            )
+            (submission / "SMALL.TXT").write_bytes(b"")
+
+            with self.assertRaisesRegex(
+                INGESTION.IngestionError,
+                "not allowed for a main-track submission",
+            ):
+                INGESTION.run(root / "missing-input", root / "output", submission)
+
+    def test_small_track_requires_marker_before_importing_solution(self) -> None:
+        """Reject a missing small marker before importing participant code."""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            submission = root / "submission"
+            self.write_solution(
+                submission,
+                "raise RuntimeError('solution must not be imported')\n",
+            )
+
+            with self.assertRaisesRegex(
+                INGESTION.IngestionError,
+                "must contain small.txt",
+            ):
+                INGESTION.run(
+                    root / "missing-input",
+                    root / "output",
+                    submission,
+                    track="small",
+                )
 
 
 if __name__ == "__main__":

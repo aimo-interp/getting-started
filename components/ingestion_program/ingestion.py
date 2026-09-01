@@ -15,6 +15,37 @@ class IngestionError(RuntimeError):
     pass
 
 
+def require_track(track: Any) -> str:
+    if not isinstance(track, str) or track not in {"main", "small"}:
+        raise IngestionError("invalid ingestion track configuration")
+    return track
+
+
+def load_track(path: Path | None = None) -> str:
+    config_path = path or Path(__file__).with_name("track.json")
+    if not config_path.is_file():
+        return "main"
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise IngestionError("invalid ingestion track configuration") from exc
+    track = config.get("track") if isinstance(config, dict) else None
+    return require_track(track)
+
+
+def validate_submission_track(submission_dir: Path, track: str) -> None:
+    if not submission_dir.is_dir():
+        raise IngestionError(f"submission directory does not exist: {submission_dir}")
+    has_small_marker = any(
+        path.is_file() and path.name.casefold() == "small.txt"
+        for path in submission_dir.iterdir()
+    )
+    if track == "main" and has_small_marker:
+        raise IngestionError("small.txt is not allowed for a main-track submission")
+    if track == "small" and not has_small_marker:
+        raise IngestionError("small-model-track submissions must contain small.txt at their root")
+
+
 def read_jsonl(path: Path) -> Iterable[dict[str, Any]]:
     with path.open("r", encoding="utf-8") as stream:
         for line_number, line in enumerate(stream, start=1):
@@ -71,11 +102,16 @@ def load_solution(submission_dir: Path) -> ModuleType:
     return module
 
 
-def run(input_dir: Path, output_dir: Path, submission_dir: Path) -> None:
+def run(
+    input_dir: Path,
+    output_dir: Path,
+    submission_dir: Path,
+    track: str | None = None,
+) -> None:
     submission_import_path = str(submission_dir.resolve())
     sys.path.insert(0, submission_import_path)
     try:
-        _run(input_dir, output_dir, submission_dir)
+        _run(input_dir, output_dir, submission_dir, require_track(track) if track else load_track())
     finally:
         # Remove the exact entry inserted above, even if participant code changed
         # sys.path or added the same path independently.
@@ -85,7 +121,8 @@ def run(input_dir: Path, output_dir: Path, submission_dir: Path) -> None:
                 break
 
 
-def _run(input_dir: Path, output_dir: Path, submission_dir: Path) -> None:
+def _run(input_dir: Path, output_dir: Path, submission_dir: Path, track: str) -> None:
+    validate_submission_track(submission_dir, track)
     cases = load_cases(input_dir / "cases.jsonl")
     solution = load_solution(submission_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -140,9 +177,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("input_dir", type=Path)
     parser.add_argument("output_dir", type=Path)
     parser.add_argument("submission_dir", type=Path)
+    parser.add_argument("--track", choices=["main", "small"])
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     arguments = parse_args()
-    run(arguments.input_dir, arguments.output_dir, arguments.submission_dir)
+    run(
+        arguments.input_dir,
+        arguments.output_dir,
+        arguments.submission_dir,
+        track=arguments.track,
+    )

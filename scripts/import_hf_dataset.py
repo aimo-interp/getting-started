@@ -218,34 +218,13 @@ def require_string(row: dict[str, Any], field: str, row_number: int) -> str:
     return value
 
 
-def require_string_list(row: dict[str, Any], field: str, row_number: int) -> list[str]:
-    value = row.get(field)
-    if isinstance(value, list):
-        parsed = value
-    elif isinstance(value, str) and value:
-        try:
-            parsed = json.loads(value)
-        except json.JSONDecodeError:
-            parsed = [value]
-    else:
-        raise DatasetImportError(f"source row {row_number} has invalid {field}")
-    if (
-        not isinstance(parsed, list)
-        or not parsed
-        or any(not isinstance(item, str) or not item for item in parsed)
-    ):
-        raise DatasetImportError(f"source row {row_number} has invalid {field}")
-    return parsed
-
-
 def make_case_id(
     model_id: str,
     dataset_id: str,
     problem_id: str,
-    permutation_type: tuple[str, ...],
 ) -> str:
     identity = json.dumps(
-        [model_id, dataset_id, problem_id, list(permutation_type)],
+        [model_id, dataset_id, problem_id],
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode()
@@ -255,18 +234,17 @@ def make_case_id(
 def convert_rows(
     source_rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    unique_rows: dict[tuple[str, str, str, tuple[str, ...]], dict[str, Any]] = {}
+    unique_rows: dict[tuple[str, str, str], dict[str, Any]] = {}
     for row_number, row in enumerate(source_rows, start=1):
         model_id = require_string(row, "model_id", row_number)
         dataset_id = require_string(row, "dataset_id", row_number)
         problem_id = require_string(row, "problem_id", row_number)
         original_problem = require_string(row, "original_problem", row_number)
-        permutation_type = tuple(require_string_list(row, "permutation_type", row_number))
         label = row.get("model_is_robust")
         if type(label) is not bool:
             raise DatasetImportError(f"source row {row_number} has invalid model_is_robust")
 
-        key = (model_id, dataset_id, problem_id, permutation_type)
+        key = (model_id, dataset_id, problem_id)
         previous = unique_rows.get(key)
         if previous is not None:
             if previous["original_problem"] != original_problem:
@@ -287,9 +265,9 @@ def convert_rows(
     cases = []
     labels = []
     seen_case_ids = set()
-    for model_id, dataset_id, problem_id, permutation_type in sorted(unique_rows):
-        row = unique_rows[(model_id, dataset_id, problem_id, permutation_type)]
-        case_id = make_case_id(model_id, dataset_id, problem_id, permutation_type)
+    for model_id, dataset_id, problem_id in sorted(unique_rows):
+        row = unique_rows[(model_id, dataset_id, problem_id)]
+        case_id = make_case_id(model_id, dataset_id, problem_id)
         if case_id in seen_case_ids:
             raise DatasetImportError(f"generated case ID collision: {case_id}")
         seen_case_ids.add(case_id)
@@ -297,10 +275,7 @@ def convert_rows(
             {
                 "id": case_id,
                 "model_id": model_id,
-                "problem": {
-                    "original_problem": row["original_problem"],
-                    "permutation_type": list(permutation_type),
-                },
+                "problem": row["original_problem"],
             }
         )
         labels.append(
@@ -390,7 +365,7 @@ def main() -> None:
 
     cases, labels, summary = convert_rows(source_rows)
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": source,
         "dataset": args.dataset,
         "revision": args.revision,

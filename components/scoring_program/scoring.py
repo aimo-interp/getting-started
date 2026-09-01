@@ -12,6 +12,24 @@ class ScoringError(RuntimeError):
     pass
 
 
+def require_track(track: Any) -> str:
+    if not isinstance(track, str) or track not in {"main", "small"}:
+        raise ScoringError("invalid scoring track configuration")
+    return track
+
+
+def load_track(path: Path | None = None) -> str:
+    config_path = path or Path(__file__).with_name("track.json")
+    if not config_path.is_file():
+        return "main"
+    try:
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ScoringError("invalid scoring track configuration") from exc
+    track = config.get("track") if isinstance(config, dict) else None
+    return require_track(track)
+
+
 def read_jsonl_strict(path: Path) -> Iterable[tuple[int, dict[str, Any]]]:
     with path.open("r", encoding="utf-8") as stream:
         for line_number, line in enumerate(stream, start=1):
@@ -78,7 +96,9 @@ def compute_scores(
     predictions: dict[str, dict[str, Any]],
     duplicate_ids: set,
     malformed: int,
+    track: str = "main",
 ) -> dict[str, Any]:
+    require_track(track)
     correct = 0
     covered = 0
 
@@ -102,19 +122,26 @@ def compute_scores(
     coverage = covered / total
     invalid_predictions = (total - covered) + structural_errors
 
+    suffix = "" if track == "main" else "_small"
     return {
-        "accuracy": accuracy,
-        "coverage": coverage,
-        "invalid_predictions": invalid_predictions,
+        f"accuracy{suffix}": accuracy,
+        f"coverage{suffix}": coverage,
+        f"invalid_predictions{suffix}": invalid_predictions,
     }
 
 
-def run(input_dir: Path, output_dir: Path) -> None:
+def run(input_dir: Path, output_dir: Path, track: str | None = None) -> None:
     reference_dir = input_dir / "ref" if (input_dir / "ref").is_dir() else input_dir
     results_dir = input_dir / "res" if (input_dir / "res").is_dir() else input_dir
     labels = load_labels(reference_dir / "labels.jsonl")
     predictions, duplicate_ids, malformed = load_predictions(results_dir / "predictions.jsonl")
-    scores = compute_scores(labels, predictions, duplicate_ids, malformed)
+    scores = compute_scores(
+        labels,
+        predictions,
+        duplicate_ids,
+        malformed,
+        track=require_track(track) if track else load_track(),
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "scores.json").write_text(
@@ -126,9 +153,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("input_dir", type=Path)
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--track", choices=["main", "small"])
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     arguments = parse_args()
-    run(arguments.input_dir, arguments.output_dir)
+    run(arguments.input_dir, arguments.output_dir, track=arguments.track)

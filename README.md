@@ -6,6 +6,7 @@ This repo contains a guideline for developing and submitting a method into the [
 ## Contents
 
 - [What your method does](#what-your-method-does)
+- [Choose a track](#choose-a-track)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
 - [Which data is available?](#which-data-is-available)
@@ -27,8 +28,9 @@ the model's behavior is robust:
 are_robust(model_id: str, problems: list[str]) -> list[bool]
 ```
 
-The ingestion program validates this exact annotated signature. The returned
-list must:
+Your submission must expose a callable named `are_robust` with these arguments.
+The annotations are recommended for clarity but are not required at runtime.
+The returned list must:
 
 - contain exactly one prediction per input problem;
 - preserve the input order;
@@ -45,6 +47,22 @@ Model weights for every evaluated `model_id` are available through the
 evaluation worker's offline Hugging Face cache; see
 [Evaluation environment](#evaluation-environment) for the list. As the evaluation runs offline, you will not have
 access to other HF models.
+
+## Choose a track
+
+The competition has a **Main Track** and a **Small Model Track**. Select exactly
+one task when uploading each submission.
+
+- A main-track ZIP must not contain `small.txt`.
+- A small-model-track ZIP must contain `small.txt` at its root.
+- The marker name is case-insensitive and its contents are ignored. A missing or
+  unexpected marker fails the submission before `solution.py` is imported.
+
+Main-track scores are reported as `accuracy`, `coverage`, and
+`invalid_predictions`. Small-model-track scores use `accuracy_small`,
+`coverage_small`, and `invalid_predictions_small`. Completed submissions are
+added to the shared leaderboard automatically, so several entries from the same
+participant may appear.
 
 ## Prerequisites
 
@@ -289,6 +307,8 @@ organizers if your method needs another model cached on the workers.
 Submit one ZIP archive containing:
 
 - `solution.py` at the archive root;
+- a root-level `small.txt` only when submitting to the Small Model Track (its
+  contents are ignored);
 - any helper modules or Python packages imported by `solution.py`;
 - all pretrained artifacts needed, such as the trained probes;
 - optional configuration files.
@@ -305,6 +325,17 @@ Correct ZIP layout, for the probing example:
 ```text
 baseline-submission-bundle.zip
 ├── solution.py
+├── probe_inference.py
+└── probe_artifacts/
+    └── probe_artifact.pkl
+```
+
+Correct Small Model Track layout:
+
+```text
+baseline-submission-bundle-small.zip
+├── solution.py
+├── small.txt
 ├── probe_inference.py
 └── probe_artifacts/
     └── probe_artifact.pkl
@@ -331,6 +362,18 @@ Verify that `solution.py` is at the root:
 ```bash
 unzip -l baseline-submission-bundle.zip
 ```
+
+For any method under `solutions/`, the build helper can also create both track
+variants without modifying the source directory:
+
+```bash
+uv run scripts/build.py solutions
+uv run scripts/build.py solutions --small
+```
+
+This creates a solution ZIP. For the probing example, the main-track output is
+`dist/solution-trained-probe.zip` and the small-track output is
+`dist/solution-trained-probe-small.zip`.
 
 ## Check the submission locally
 
@@ -378,25 +421,39 @@ The accuracy shown above is only an example. Before submission, require:
 - successful execution in the competition Docker image, not only in a local
   virtual environment.
 
-Build all repository artifacts with:
+To check the track-specific packaging guards and score names separately, run:
 
 ```bash
-uv run scripts/build.py all \
-  --input-dir data/val-sample/input \
-  --reference-dir data/val-sample/reference
+uv run scripts/build.py solutions
+uv run scripts/build.py solutions --small
+uv run scripts/run_local.py dist/solution-always-true.zip
+uv run scripts/run_local.py dist/solution-always-true-small.zip --small
 ```
 
-This creates a solution ZIP. For the probing example, the output is
-`dist/solution-trained-probe.zip`.
+The small-track run reports:
+
+```json
+{
+  "accuracy_small": 0.375,
+  "coverage_small": 1.0,
+  "invalid_predictions_small": 0
+}
+```
+
+The public sample is a contract and packaging check; it is not a preview of the
+private track scores.
 
 ## How to submit
 
 1. Sign in to the AIMO Interpretability Challenge on [Codabench](https://www.codabench.org/competitions/16180/#/pages-tab).
-2. Open the active submission phase.
-3. Upload `baseline-submission-bundle.zip` or the generated
+2. Open the active submission phase and select exactly one task.
+3. For the Main Track, upload a ZIP without `small.txt`, such as
    `dist/solution-trained-probe.zip`.
-4. Wait for ingestion and scoring to finish.
-5. Check `coverage` and `invalid_predictions` before interpreting accuracy.
+4. For the Small Model Track, upload the corresponding ZIP with the marker,
+   such as `dist/solution-trained-probe-small.zip`.
+5. Wait for ingestion and scoring to finish.
+6. Check the track's coverage and invalid-prediction columns before interpreting
+   its accuracy.
 
 An invalid prediction usually means the method raised an exception, returned a
 non-boolean value, or returned the wrong number of predictions. Detailed

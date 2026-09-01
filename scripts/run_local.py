@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from zipfile import BadZipFile, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,6 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("submission", type=Path)
+    parser.add_argument(
+        "--small",
+        action="store_true",
+        help="run the submission against the small model track",
+    )
     parser.add_argument(
         "--input-dir",
         type=Path,
@@ -28,14 +34,36 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def extract_submission(archive: Path, destination: Path) -> Path:
+    try:
+        with ZipFile(archive) as bundle:
+            root = destination.resolve()
+            for member in bundle.infolist():
+                target = (destination / member.filename).resolve()
+                if target != root and root not in target.parents:
+                    raise SystemExit(f"submission ZIP contains an unsafe path: {member.filename}")
+            bundle.extractall(destination)
+    except BadZipFile as exc:
+        raise SystemExit(f"invalid submission ZIP: {archive}") from exc
+    return destination
+
+
 def main() -> None:
     args = parse_args()
-    submission = args.submission.resolve()
-    if not (submission / "solution.py").is_file():
-        raise SystemExit("submission must be a directory containing solution.py")
+    submission_source = args.submission.resolve()
+    track = "small" if args.small else "main"
 
     with tempfile.TemporaryDirectory(prefix="aimo-codabench-") as temporary:
         root = Path(temporary)
+        if submission_source.is_dir():
+            submission = submission_source
+        elif submission_source.is_file() and submission_source.suffix.casefold() == ".zip":
+            submission = extract_submission(submission_source, root / "submission")
+        else:
+            raise SystemExit("submission must be a directory or ZIP archive")
+        if not (submission / "solution.py").is_file():
+            raise SystemExit("submission must contain solution.py at its root")
+
         ingestion_output = root / "input" / "res"
         scoring_input = root / "input"
         scoring_output = root / "output"
@@ -50,6 +78,8 @@ def main() -> None:
                 str(args.input_dir.resolve()),
                 str(ingestion_output),
                 str(submission),
+                "--track",
+                track,
             ],
             check=True,
         )
@@ -59,6 +89,8 @@ def main() -> None:
                 str(ROOT / "components" / "scoring_program" / "scoring.py"),
                 str(scoring_input),
                 str(scoring_output),
+                "--track",
+                track,
             ],
             check=True,
         )

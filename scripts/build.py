@@ -65,8 +65,27 @@ def solutions() -> list[tuple[str, Path]]:
     return found
 
 
-def solution_archive_name(name: str) -> str:
-    return f"solution-{name}.zip"
+def solution_archive_name(name: str, small: bool = False) -> str:
+    suffix = "-small" if small else ""
+    return f"solution-{name}{suffix}.zip"
+
+
+def build_solutions(small: bool = False) -> None:
+    for name, directory in solutions():
+        entries = directory_entries(directory)
+        marker_names = [
+            path for path in entries if "/" not in path and path.casefold() == "small.txt"
+        ]
+        if small:
+            for marker_name in marker_names:
+                del entries[marker_name]
+            entries["small.txt"] = b""
+        elif marker_names:
+            raise SystemExit(
+                f"main-track solution {name!r} contains small.txt; "
+                "remove it or build with --small"
+            )
+        archive(DIST / solution_archive_name(name, small=small), entries)
 
 
 def build_components(input_dir: Path, reference_dir: Path) -> None:
@@ -78,8 +97,7 @@ def build_components(input_dir: Path, reference_dir: Path) -> None:
         DIST / "scoring-program.zip",
         directory_entries(ROOT / "components" / "scoring_program"),
     )
-    for name, directory in solutions():
-        archive(DIST / solution_archive_name(name), directory_entries(directory))
+    build_solutions()
     archive(DIST / "input-data.zip", directory_entries(input_dir))
     archive(DIST / "reference-data.zip", directory_entries(reference_dir))
 
@@ -211,7 +229,15 @@ def build_competition(mode: str, resource_config: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("target", choices=["components", "task", "competition", "all"])
+    parser.add_argument(
+        "target",
+        choices=["solutions", "components", "task", "competition", "all"],
+    )
+    parser.add_argument(
+        "--small",
+        action="store_true",
+        help="with target=solutions, build small-track ZIPs containing a blank small.txt",
+    )
     parser.add_argument("--mode", choices=["embedded", "linked"], default="embedded")
     parser.add_argument(
         "--input-dir",
@@ -238,7 +264,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if args.target == "components":
+    if args.small and args.target != "solutions":
+        raise SystemExit("--small is only supported with target=solutions")
+    if args.target == "solutions":
+        build_solutions(small=args.small)
+    elif args.target == "components":
         build_components(args.input_dir, args.reference_dir)
     elif args.target == "task":
         build_task(args.mode, args.resource_config)
