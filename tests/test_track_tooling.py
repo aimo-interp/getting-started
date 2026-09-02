@@ -57,7 +57,7 @@ class TrackToolingTests(unittest.TestCase):
         self.assertEqual(cases[0]["id"], labels[0]["id"])
         self.assertEqual(summary["duplicate_rows_removed"], 1)
 
-    def test_small_scores_use_small_leaderboard_keys(self) -> None:
+    def test_small_scores_use_shared_leaderboard_keys(self) -> None:
         scores = self.scoring.compute_scores(
             {"case": True},
             {"case": {"id": "case", "is_robust": True, "valid": True}},
@@ -67,7 +67,7 @@ class TrackToolingTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            {"accuracy_small", "coverage_small", "invalid_predictions_small"},
+            {"accuracy", "coverage", "invalid_predictions"},
             set(scores),
         )
 

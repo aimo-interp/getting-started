@@ -122,11 +122,10 @@ def compute_scores(
     coverage = covered / total
     invalid_predictions = (total - covered) + structural_errors
 
-    suffix = "" if track == "main" else "_small"
     return {
-        f"accuracy{suffix}": accuracy,
-        f"coverage{suffix}": coverage,
-        f"invalid_predictions{suffix}": invalid_predictions,
+        "accuracy": accuracy,
+        "coverage": coverage,
+        "invalid_predictions": invalid_predictions,
     }
 
 
