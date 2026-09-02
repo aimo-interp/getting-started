@@ -298,7 +298,6 @@ def convert_rows(
                 "id": case_id,
                 "model_id": model_id,
                 "problem": row["original_problem"],
-                "permutation_type": list(permutation_type),
             }
         )
         labels.append(
