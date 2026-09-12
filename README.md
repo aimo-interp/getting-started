@@ -58,11 +58,10 @@ one task when uploading each submission.
 - The marker name is case-insensitive and its contents are ignored. A missing or
   unexpected marker fails the submission before `solution.py` is imported.
 
-Main-track scores are reported as `accuracy`, `coverage`, and
-`invalid_predictions`. Small-model-track scores use `accuracy_small`,
-`coverage_small`, and `invalid_predictions_small`. Completed submissions are
-added to the shared leaderboard automatically, so several entries from the same
-participant may appear.
+Both tracks report `accuracy`, `coverage`, and `invalid_predictions`.
+Codabench keeps the scores separate by task while reusing the shared leaderboard
+columns. Completed submissions are added to the leaderboard automatically, so
+several entries from the same participant may appear.
 
 ## Prerequisites
 
@@ -436,7 +435,7 @@ The accuracy shown above is only an example. Before submission, require:
 - successful execution in the competition Docker image, not only in a local
   virtual environment.
 
-To check the track-specific packaging guards and score names separately, run:
+To check each track's packaging guards and local scores, run:
 
 ```bash
 uv run scripts/build.py solutions
@@ -445,13 +444,13 @@ uv run scripts/run_local.py dist/solution-always-true.zip
 uv run scripts/run_local.py dist/solution-always-true-small.zip --small
 ```
 
-The small-track run reports:
+The small-track run uses the same score names as the main track:
 
 ```json
 {
-  "accuracy_small": 0.375,
-  "coverage_small": 1.0,
-  "invalid_predictions_small": 0
+  "accuracy": 0.375,
+  "coverage": 1.0,
+  "invalid_predictions": 0
 }
 ```
 
