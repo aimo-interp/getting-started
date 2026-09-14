@@ -219,7 +219,7 @@ class ArtifactAndInferenceTests(unittest.TestCase):
             "predict_robustness",
             return_value=[True, False],
         ) as predictor:
-            predictions = SOLUTION.are_robust("example/model", problems)
+            predictions = SOLUTION.are_robust("example/model", "default", problems)
 
         self.assertEqual(predictions, [True, False])
         predictor.assert_called_once_with(

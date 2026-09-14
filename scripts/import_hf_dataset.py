@@ -222,9 +222,14 @@ def make_case_id(
     model_id: str,
     dataset_id: str,
     problem_id: str,
+    reasoning_effort: str = "default",
 ) -> str:
+    # Keep existing case IDs stable for unspecified/default effort.
+    identity_parts = [model_id, dataset_id, problem_id]
+    if reasoning_effort != "default":
+        identity_parts.append(reasoning_effort)
     identity = json.dumps(
-        [model_id, dataset_id, problem_id],
+        identity_parts,
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode()
@@ -234,17 +239,20 @@ def make_case_id(
 def convert_rows(
     source_rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    unique_rows: dict[tuple[str, str, str], dict[str, Any]] = {}
+    unique_rows: dict[tuple[str, str, str, str], dict[str, Any]] = {}
     for row_number, row in enumerate(source_rows, start=1):
         model_id = require_string(row, "model_id", row_number)
         dataset_id = require_string(row, "dataset_id", row_number)
         problem_id = require_string(row, "problem_id", row_number)
         original_problem = require_string(row, "original_problem", row_number)
+        effort = row.get("reasoning_effort", "default")
+        if not isinstance(effort, str) or not effort.strip():
+            raise DatasetImportError(f"source row {row_number} has invalid reasoning_effort")
         label = row.get("model_is_robust")
         if type(label) is not bool:
             raise DatasetImportError(f"source row {row_number} has invalid model_is_robust")
 
-        key = (model_id, dataset_id, problem_id)
+        key = (model_id, dataset_id, problem_id, effort)
         previous = unique_rows.get(key)
         if previous is not None:
             if previous["original_problem"] != original_problem:
@@ -265,9 +273,9 @@ def convert_rows(
     cases = []
     labels = []
     seen_case_ids = set()
-    for model_id, dataset_id, problem_id in sorted(unique_rows):
-        row = unique_rows[(model_id, dataset_id, problem_id)]
-        case_id = make_case_id(model_id, dataset_id, problem_id)
+    for model_id, dataset_id, problem_id, effort in sorted(unique_rows):
+        row = unique_rows[(model_id, dataset_id, problem_id, effort)]
+        case_id = make_case_id(model_id, dataset_id, problem_id, effort)
         if case_id in seen_case_ids:
             raise DatasetImportError(f"generated case ID collision: {case_id}")
         seen_case_ids.add(case_id)
@@ -278,6 +286,8 @@ def convert_rows(
                 "problem": row["original_problem"],
             }
         )
+        if effort != "default":
+            cases[-1]["reasoning_effort"] = effort
         labels.append(
             {
                 "id": case_id,

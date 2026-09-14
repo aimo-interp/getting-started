@@ -6,7 +6,7 @@ of `https://github.com/aimo-interp/baselines`.
 
 The implementation is split by responsibility:
 
-- `solution.py` defines `are_robust(model_id, problems: list[str])`.
+- `solution.py` defines `are_robust(model_id, reasoning_effort, problems: list[str])`.
 - `probe_inference.py` loads artifacts and models, extracts hidden states, and
   scores the probe ensemble.
 - `probe_artifacts/` contains the exported pretrained artifact when packaging a
@@ -50,7 +50,7 @@ At inference, the list-backed probe arrays are converted with
 `np.asarray(..., dtype=np.float32)`.
 
 The submission exposes the batched contract
-`are_robust(model_id, problems) -> list[bool]`. It preserves problem order and
+`are_robust(model_id, reasoning_effort, problems) -> list[bool]`. It preserves problem order and
 returns one prediction per input problem.
 
 Single-probe `.npz` artifacts from the earlier wrapper are still accepted as a

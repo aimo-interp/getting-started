@@ -42,7 +42,7 @@ uncertainty-profiling/
 ```
 
 `solution.py` defines the required
-`are_robust(model_id: str, problems: list[str]) -> list[bool]` entry point. When
+`are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> list[bool]` entry point. When
 Codabench supplies `qwen3-8b:low`, the runtime resolves it to the cached
 `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` checkpoint before artifact lookup and
 model loading. If no supported alias or matching artifact exists, the solution

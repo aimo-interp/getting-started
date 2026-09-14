@@ -3,11 +3,12 @@
 from uncertainty_profile.inference import predict_robustness
 
 
-def are_robust(model_id: str, problems: list[str]) -> list[bool]:
+def are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> list[bool]:
     """Predict one native boolean robustness label per problem.
 
     Args:
         model_id: Codabench model alias or exact checkpoint identifier.
+        reasoning_effort: Evaluated reasoning effort, unused by this baseline.
         problems: Mathematical problem statements in evaluation order.
 
     Returns:
