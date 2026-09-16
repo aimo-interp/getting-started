@@ -3,6 +3,7 @@
 
 import argparse
 import importlib.util
+import inspect
 import json
 import sys
 from collections.abc import Iterable
@@ -75,6 +76,9 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
             raise IngestionError(f"{path.name}:{line_number}: invalid model_id")
         if not isinstance(problem, str) or not problem:
             raise IngestionError(f"{path.name}:{line_number}: invalid problem")
+        effort = case.get("reasoning_effort", "default")
+        if not isinstance(effort, str) or not effort.strip():
+            raise IngestionError(f"{path.name}:{line_number}: invalid reasoning_effort")
         seen_ids.add(case_id)
         cases.append(case)
     if not cases:
@@ -125,22 +129,44 @@ def _run(input_dir: Path, output_dir: Path, submission_dir: Path, track: str) ->
     validate_submission_track(submission_dir, track)
     cases = load_cases(input_dir / "cases.jsonl")
     solution = load_solution(submission_dir)
+    try:
+        parameters = inspect.signature(solution.are_robust).parameters.values()
+        accepts_effort = any(
+            parameter.kind == inspect.Parameter.VAR_KEYWORD
+            or (
+                parameter.name == "reasoning_effort"
+                and parameter.kind in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.KEYWORD_ONLY,
+                )
+            )
+            for parameter in parameters
+        )
+    except (TypeError, ValueError):
+        # Preserve legacy invocation for callables without an inspectable signature.
+        accepts_effort = False
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    batches: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    batches: dict[tuple[str, str], list[tuple[int, dict[str, Any]]]] = {}
     for index, case in enumerate(cases):
-        batches.setdefault(case["model_id"], []).append((index, case))
+        effort = case.get("reasoning_effort", "default") if accepts_effort else "default"
+        batches.setdefault((case["model_id"], effort), []).append((index, case))
 
     predictions = [
         {"id": case["id"], "is_robust": False, "valid": False} for case in cases
     ]
     failures = 0
-    for model_id, batch in batches.items():
+    for (model_id, effort), batch in batches.items():
         batch_predictions = [False] * len(batch)
         batch_valid = [False] * len(batch)
         try:
             problems = [case["problem"] for _, case in batch]
-            results = solution.are_robust(model_id, problems)
+            if accepts_effort:
+                results = solution.are_robust(
+                    model_id, reasoning_effort=effort, problems=problems
+                )
+            else:
+                results = solution.are_robust(model_id, problems)
             if (
                 type(results) is list
                 and len(results) == len(problems)

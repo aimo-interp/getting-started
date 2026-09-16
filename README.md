@@ -25,11 +25,17 @@ For each model and batch of mathematical problems, your method predicts whether
 the model's behavior is robust:
 
 ```python
-are_robust(model_id: str, problems: list[str]) -> list[bool]
+are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> list[bool]
 ```
 
 Your submission must expose a callable named `are_robust` with these arguments.
 The annotations are recommended for clarity but are not required at runtime.
+The reasoning effort comes from the dataset and is `"default"`, `"low"`, or
+`"medium"`. If the field is absent, your method receives `"default"`.
+
+The legacy `are_robust(model_id, problems)` interface remains fully supported;
+existing submissions require no changes and ignore reasoning-effort metadata.
+
 The returned list must:
 
 - contain exactly one prediction per input problem;
@@ -135,7 +141,9 @@ private problems and labels.
 
 ### Data available during evaluation
 
-For each call, the trained probe receives a `model_id` and a list of `str`.
+For each call, your method receives a `model_id`, a `reasoning_effort`, and a
+list of problem strings. Problems are grouped by model and reasoning effort,
+with one call per group. Legacy submissions still receive one batch per model.
 
 Your submission does not receive case IDs, reference labels, private dataset
 files, or network access.
@@ -159,9 +167,12 @@ The `solution.py` file defines only the Codabench interface:
 ```python
 from probe_inference import predict_robustness
 
-def are_robust(model_id: str, problems: list[str]) -> list[bool]:
+def are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> list[bool]:
     return predict_robustness(model_id, problems)
 ```
+
+The example baselines accept `reasoning_effort` but do not use it in their
+predictions. Your method can use it to account for the evaluated configuration.
 
 `probe_inference.py` contains the implementation in three sections:
 
