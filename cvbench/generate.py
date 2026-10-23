@@ -11,6 +11,9 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   over the response, and the last prompt token of each code-made perturbation
   (``perturb_probe.perturbations``); plus the per-token entropy and selected
   log-prob trace of the greedy response.
+* ``pool``: prompt-only forward passes for X and its 4 perturbations, saving at
+  every layer the mean over the problem-text tokens and over the last 4 chat-template
+  tokens (``prob_mean``/``tmpl_last`` and their ``pert_*`` counterparts).
 * ``sample``: the forced-answer perturbation probe (X + 4 perturbations,
   ``--n`` traces each, ``--budget`` thinking tokens, forced answers and
   answer log-probs).
@@ -125,6 +128,41 @@ def run_acts(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
         print(f"  {k}/{len(groups)} {g}: {len(response_ids)} resp tokens, {time.time() - start:.1f}s", flush=True)
 
 
+@torch.no_grad()
+def pooled(model, tokenizer, texts: list[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Per text: mean over the problem-text tokens and mean over the last 4 template tokens, [n, L+1, d] each."""
+    device = model.get_input_embeddings().weight.device
+    prob, tmpl = [], []
+    for text in texts:
+        prompt = format_problem(tokenizer, text)
+        start = prompt.find(text)
+        enc = tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=2048,
+                        return_offsets_mapping=True, return_tensors="pt")
+        offsets = enc.pop("offset_mapping")[0]
+        span = ((offsets[:, 0] >= start) & (offsets[:, 1] <= start + len(text)) & (offsets[:, 1] > offsets[:, 0]))
+        if start < 0 or not span.any():
+            span = torch.ones(len(offsets), dtype=torch.bool)
+        hs = model(**enc.to(device), output_hidden_states=True).hidden_states
+        span = span.to(device)
+        prob.append(torch.stack([h[0, span].float().mean(0) for h in hs]).cpu().numpy())
+        tmpl.append(torch.stack([h[0, -4:].float().mean(0) for h in hs]).cpu().numpy())
+    return np.stack(prob), np.stack(tmpl)
+
+
+def run_pool(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
+    out_dir = DATA / "pool" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    groups = [g for g in todo if not (out_dir / f"{g}.npz").is_file()]
+    print(f"[pool] {model_id}: {len(groups)} to do", flush=True)
+    for k, g in enumerate(groups, 1):
+        variants = make_perturbations(todo[g], seed=0)
+        prob, tmpl = pooled(model, tokenizer, [todo[g]] + [t for _, t in variants])
+        np.savez_compressed(out_dir / f"{g}.npz", prob_mean=prob[0].astype(np.float16), tmpl_last=tmpl[0].astype(np.float16),
+                            pert_prob_mean=prob[1:].astype(np.float16), pert_tmpl_last=tmpl[1:].astype(np.float16),
+                            pert_types=np.array([kind for kind, _ in variants]))
+        print(f"  {k}/{len(groups)} {g}", flush=True)
+
+
 def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, budget: int) -> None:
     out = DATA / "sample" / f"{safe(model_id)}__n{n}_b{budget}.jsonl"
     done = {r["group"] for r in read_jsonl(out)}
@@ -142,7 +180,7 @@ def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, bu
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool"])
     parser.add_argument("--models", nargs="+", default=MODELS)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n", type=int, default=4)
@@ -161,6 +199,8 @@ def main() -> None:
                     run_greedy(model, tokenizer, model_id, todo, args.batch_size)
                 elif stage == "acts":
                     run_acts(model, tokenizer, model_id, todo)
+                elif stage == "pool":
+                    run_pool(model, tokenizer, model_id, todo)
                 else:
                     run_sample(model, tokenizer, model_id, todo, args.n, args.budget)
         finally:
