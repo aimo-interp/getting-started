@@ -144,7 +144,70 @@ def _inner_select(candidates, make_feats, y, groups, tr, C):
     return best
 
 
+def pca_fit_predict(acts, models, y, tr, te, site, frac, k, C):
+    """Per model: PCA(k) on its training rows, then an L2 logistic probe on the components.
+
+    A model whose training rows hold one class predicts that class. Returns (pred, prob) for ``te``.
+    """
+    from sklearn.decomposition import PCA
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    pred, prob = np.ones(len(te), dtype=bool), np.full(len(te), 0.5)
+    for m in np.unique(models[te]):
+        tr_m, te_pos = tr[models[tr] == m], np.where(models[te] == m)[0]
+        if not len(tr_m):
+            continue
+        layer = layer_of(acts[tr_m[0]][site].shape[0], frac)
+        H_tr = np.stack([acts[i][site][layer] for i in tr_m])
+        H_te = np.stack([acts[i][site][layer] for i in te[te_pos]])
+        if len(set(y[tr_m])) < 2:
+            pred[te_pos], prob[te_pos] = y[tr_m][0], float(y[tr_m][0])
+            continue
+        n_comp = min(k, len(tr_m) - 1)
+        clf = make_pipeline(StandardScaler(), PCA(n_comp, random_state=0), StandardScaler(),
+                            LogisticRegression(C=C, max_iter=2000)).fit(H_tr, y[tr_m])
+        prob[te_pos] = clf.predict_proba(H_te)[:, 1]
+        pred[te_pos] = prob[te_pos] >= 0.5
+    return pred, prob
+
+
 def register(methods, cv):
+    def pca_probe(cases, args):
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        groups = cases.group.to_numpy()
+        sites = ("last_prompt", "resp_mean") if args.site is None else (args.site,)
+        fracs = LAYER_FRACS if args.layer_frac is None else (args.layer_frac,)
+        ks = tuple(args.pca_k)
+        Cs = tuple(args.pca_C or [args.C])
+        cands = [(s, f, k, c) for s in sites for f in fracs for k in ks for c in Cs]
+
+        def select(tr):
+            y_tr, g_tr = y[tr], groups[tr]
+            n_splits = min(4, len(set(g_tr[y_tr])), len(set(g_tr[~y_tr])))
+            splits = list(StratifiedGroupKFold(n_splits, shuffle=True, random_state=0).split(tr, y_tr, g_tr))
+            best, best_acc = None, -1.0
+            for cand in cands:
+                correct = []
+                for itr, ite in splits:
+                    p, _ = pca_fit_predict(acts, models, y, tr[itr], tr[ite], *cand)
+                    correct += list(p == y_tr[ite])
+                if np.mean(correct) > best_acc:
+                    best, best_acc = cand, np.mean(correct)
+            return best
+
+        def predict(tr, te):
+            cand = cands[0] if len(cands) == 1 else select(tr)
+            return pca_fit_predict(acts, models, y, tr, te, *cand)
+
+        sel = "fixed" if len(cands) == 1 else "nested-CV"
+        return predict, (f"per-model PCA + L2 logistic probe; site in {list(sites)}; layer frac in {list(fracs)}; "
+                         f"k in {list(ks)}; C in {list(Cs)} ({sel})")
+
+    methods["pca_probe"] = ("whitebox", pca_probe)
+
     def act_probe(cases, args):
         acts = load_acts(cases, cv)
         y = cases.is_robust.astype(bool).to_numpy()
