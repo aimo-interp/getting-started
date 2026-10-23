@@ -300,6 +300,7 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--budget", type=int, default=2048)
     parser.add_argument("--layer-frac", type=float, default=None)
+    parser.add_argument("--with-bb", nargs="*", default=None, help="Blackbox feature methods to append to act_probe.")
     parser.add_argument("--layer-window", type=int, default=0)
     parser.add_argument("--site", default=None, choices=["last_prompt", "resp_mean"])
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")

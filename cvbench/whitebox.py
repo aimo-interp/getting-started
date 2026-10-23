@@ -160,10 +160,16 @@ def register(methods, cv):
             cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
             chosen.append(cand)
             F = make(cand, tr)
+            if extra is not None:
+                F = np.concatenate([F, extra], 1)
             return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
 
+        extra = None
+        if args.with_bb:
+            blocks = [cv.zscore_within_model(cv.METHODS[name][1](cases, args)[0], cases) for name in args.with_bb]
+            extra = np.concatenate(blocks, 1)
         sel = "fixed" if len(cands) == 1 else "nested-CV"
-        return predict, (f"diff-in-means probe per model; site in {list(sites)}; layer frac in {list(fracs)} ({sel}); "
+        return predict, (f"{'+'.join(['probe'] + (args.with_bb or []))}: " if args.with_bb else "") + (f"diff-in-means probe per model; site in {list(sites)}; layer frac in {list(fracs)} ({sel}); "
                          f"layer window +-{args.layer_window}; logistic C={args.C}")
 
     def perturb_direction(cases, args, supervised=False):

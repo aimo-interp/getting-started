@@ -11,4 +11,4 @@
 set -eo pipefail
 cd "$SLURM_SUBMIT_DIR"
 source /data/gpfs/projects/punim0478/bansaab/venvs/pyine/bin/activate
-python cvbench/generate.py --stages sample --n "${N:-4}" --budget "${BUDGET:-2048}"
+python cvbench/generate.py --stages sample --n "${N:-4}" --budget "${BUDGET:-2048}" ${MODELS:+--models $MODELS}
