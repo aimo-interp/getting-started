@@ -306,10 +306,13 @@ def main() -> None:
     parser.add_argument("--pca-k", type=int, nargs="+", default=[2, 4, 8, 16])
     parser.add_argument("--site", default=None, choices=["last_prompt", "resp_mean"])
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")
+    parser.add_argument("--models", nargs="+", default=None, help="Restrict to these model ids (subset CV).")
     parser.add_argument("--no-write", action="store_true")
     args = parser.parse_args()
 
     cases = load_cases()
+    if args.models:
+        cases = cases[cases.model_id.isin(args.models)]
     if args.layer_report:
         import whitebox
         df = whitebox.layer_report(cases, sys.modules[__name__], DATA / "layer_report.csv")
@@ -332,6 +335,8 @@ def main() -> None:
             X = zscore_within_model(feats, cases)
             res = evaluate(cases, logistic_predictor(X, y, args.C), args.repeats)
             hyper += f"; logistic C={args.C}" if "logistic" not in hyper else ""
+        if args.models:
+            hyper += f"; SUBSET models={','.join(m.split('/')[-1] for m in args.models)}"
         row = {"method": name, "type": kind, "hyperparams": hyper, "n_cases": len(cases), **res}
         rows.append(row)
         print(f"{name:24s} acc={res['cv_score']:.3f}±{res['cv_std']:.3f} bacc={res['balanced_acc']:.3f} "
