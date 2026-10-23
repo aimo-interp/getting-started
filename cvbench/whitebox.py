@@ -40,7 +40,14 @@ def load_acts(cases, cv):
         for c in cases.itertuples():
             path = cv.acts_file(c.model_id, c.group)
             z = np.load(path)
-            acts.append({k: z[k].astype(np.float32) for k in ("last_prompt", "resp_mean", "pert_last")})
+            row = {k: z[k].astype(np.float32) for k in ("last_prompt", "resp_mean", "pert_last")}
+            row["pert_types"] = z["pert_types"]
+            pool = cv.DATA / "pool" / cv.safe(c.model_id) / f"{c.group}.npz"
+            if pool.is_file():
+                zp = np.load(pool)
+                row.update({k: zp[k].astype(np.float32) for k in ("prob_mean", "tmpl_last", "pert_prob_mean",
+                                                                   "pert_tmpl_last")})
+            acts.append(row)
         _CACHE[key] = acts
     return _CACHE[key]
 
@@ -207,6 +214,67 @@ def register(methods, cv):
                          f"k in {list(ks)}; C in {list(Cs)} ({sel})")
 
     methods["pca_probe"] = ("whitebox", pca_probe)
+
+    def shift_resid(cases, args):
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        groups = cases.group.to_numpy()
+        sites = tuple(args.shift_sites)
+        fracs = LAYER_FRACS if args.layer_frac is None else (args.layer_frac,)
+        cache = {}
+
+        def make(cand, rows):
+            if cand not in cache:
+                cache[cand] = residual_features(acts, models, *cand, args.shift_feats)
+            return cache[cand]
+
+        def predict(tr, te):
+            cands = [(s_, f) for s_ in sites for f in fracs]
+            cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
+            F = make(cand, tr)
+            if args.with_probe:
+                F = np.concatenate([F, diffmean_scores(acts, models, y, tr, None, "resp_mean", 0.5)], 1)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        return predict, (f"shift d=h(dX)-h(X), r per model x perturbation type (label-free); feats {args.shift_feats}; "
+                         f"site in {list(sites)}; layer frac nested in {list(fracs)}"
+                         f"{'; + resp_mean diff-in-means probe @0.5' if args.with_probe else ''}; logistic C={args.C}")
+
+    methods["shift_resid"] = ("whitebox", shift_resid)
+
+
+SITE_PAIRS = {"last": ("last_prompt", "pert_last"), "prob_mean": ("prob_mean", "pert_prob_mean"),
+              "tmpl_last": ("tmpl_last", "pert_tmpl_last")}
+
+
+def residual_features(acts, models, site, frac, feats):
+    """Label-free per-case shift scores (proj, resid, norm), r per model x perturbation type, z-scored within model."""
+    x_key, dx_key = SITE_PAIRS[site]
+    names = ("proj", "resid", "norm")
+    out = np.zeros((len(acts), len(feats)))
+    for m in np.unique(models):
+        idx = np.where(models == m)[0]
+        layer = layer_of(acts[idx[0]][x_key].shape[0], frac)
+        acc = np.zeros((len(idx), 3))
+        cnt = np.zeros(len(idx))
+        for kind in sorted({t for i in idx for t in acts[i]["pert_types"]}):
+            D = [acts[i][dx_key][acts[i]["pert_types"] == kind, layer] - acts[i][x_key][layer] for i in idx]
+            have = [j for j in range(len(idx)) if len(D[j])]
+            if len(have) < 3:
+                continue
+            for j in have:
+                r = np.concatenate([D[o] for o in have if o != j]).mean(0)   # leave this problem out
+                r /= np.linalg.norm(r) + 1e-8
+                p = D[j] @ r
+                scale = np.linalg.norm(acts[idx[j]][x_key][layer]) + 1e-8
+                acc[j] += [p.mean() / scale, np.linalg.norm(D[j] - p[:, None] * r, axis=1).mean() / scale,
+                           np.linalg.norm(D[j], axis=1).mean() / scale]
+                cnt[j] += 1
+        v = acc / np.maximum(cnt, 1)[:, None]
+        v = (v - v.mean(0)) / (v.std(0) + 1e-8)
+        out[idx] = v[:, [names.index(f) for f in feats]]
+    return out
 
     def act_probe(cases, args):
         acts = load_acts(cases, cv)
