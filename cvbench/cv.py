@@ -80,6 +80,30 @@ def m_uncertainty_cv(cases, args):
     return g[list(FEATURE_NAMES)], "14 baseline features; greedy max_new_tokens=4096; logistic C=%g" % args.C
 
 
+def m_uncertainty_rf(cases, args):
+    """The baseline recipe retrained per fold: RF regressor on max_drop, threshold from inner OOF (balanced acc)."""
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.model_selection import GroupKFold
+    from uncertainty_profile.config import FEATURE_NAMES
+    g = greedy_table(cases)
+    X = g[list(FEATURE_NAMES)].astype(float).fillna(g[list(FEATURE_NAMES)].median()).to_numpy()
+    y = cases.is_robust.astype(bool).to_numpy()
+    drop = cases.max_drop.astype(float).fillna(pd.Series(np.where(y, 0.0, 0.5), index=cases.index)).clip(0, 1).to_numpy()
+    groups = cases.group.to_numpy()
+
+    def rf():
+        return RandomForestRegressor(n_estimators=500, max_features=1.0, min_samples_leaf=1, random_state=0, n_jobs=-1)
+
+    def predict(tr, te):
+        oof = np.zeros(len(tr))
+        for itr, ite in GroupKFold(4).split(tr, groups=groups[tr]):
+            oof[ite] = rf().fit(X[tr][itr], drop[tr][itr]).predict(X[tr][ite])
+        best = max(np.unique(oof), key=lambda t: (balanced_accuracy_score(y[tr], oof <= t), -t))
+        pred = rf().fit(X[tr], drop[tr]).predict(X[te])
+        return pred <= best, -pred
+    return predict, "baseline recipe: RF(500, max_features=1.0) on max_drop; threshold by inner OOF balanced acc; greedy 4096"
+
+
 HESITATION = re.compile(
     r"\b(wait|hmm+|alternatively|actually|let me (?:double[- ]check|re-?check|verify|reconsider)|"
     r"but (?:wait|hold on)|on second thought|i made (?:a|an) (?:mistake|error)|that'?s (?:not right|wrong))\b",
@@ -239,6 +263,7 @@ METHODS = {
     "always_true": ("reference", m_always_true),
     "uncertainty_shipped": ("blackbox", m_uncertainty_shipped),
     "uncertainty_cv": ("blackbox", m_uncertainty_cv),
+    "uncertainty_rf": ("blackbox", m_uncertainty_rf),
     "cot_text": ("blackbox", m_cot_text),
     "uncertainty_cot": ("blackbox", m_uncertainty_cot),
     "entropy_trace": ("blackbox", m_entropy_trace),
@@ -275,6 +300,7 @@ def main() -> None:
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--budget", type=int, default=2048)
     parser.add_argument("--layer-frac", type=float, default=None)
+    parser.add_argument("--layer-window", type=int, default=0)
     parser.add_argument("--site", default=None, choices=["last_prompt", "resp_mean"])
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")
     parser.add_argument("--no-write", action="store_true")

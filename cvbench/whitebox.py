@@ -62,14 +62,25 @@ def _predict(clf, X, default):
     return prob >= 0.5, prob
 
 
-def diffmean_scores(acts, models, y, tr, te, site, frac):
-    """1-D projection feature for train and test rows, z-scored within model on train stats."""
+def diffmean_scores(acts, models, y, tr, te, site, frac, window=0):
+    """1-D projection feature, z-scored within model on train stats; averaged over layer +-window."""
+    if window:
+        L = {m: acts[np.where(models == m)[0][0]][site].shape[0] - 1 for m in np.unique(models)}
+        cols = []
+        for k in range(-window, window + 1):
+            # shift every model by k layers around its own frac
+            cols.append(np.concatenate([diffmean_scores_layer(acts, models, y, tr, site, frac, k)], 1))
+        return np.mean(cols, 0)
+    return diffmean_scores_layer(acts, models, y, tr, site, frac, 0)
+
+
+def diffmean_scores_layer(acts, models, y, tr, site, frac, offset):
     feat = np.zeros(len(acts))
     for m in np.unique(models):
         idx = np.where(models == m)[0]
         tr_m, all_m = np.intersect1d(idx, tr), idx
         L = acts[idx[0]][site].shape[0]
-        layer = layer_of(L, frac)
+        layer = min(max(layer_of(L, frac) + offset, 0), L - 1)
         H = np.stack([acts[i][site][layer] for i in all_m])
         H_tr = np.stack([acts[i][site][layer] for i in tr_m])
         y_tr = y[tr_m]
@@ -145,7 +156,7 @@ def register(methods, cv):
         chosen = []
 
         def predict(tr, te):
-            make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand)
+            make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand, window=args.layer_window)
             cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
             chosen.append(cand)
             F = make(cand, tr)
@@ -153,7 +164,7 @@ def register(methods, cv):
 
         sel = "fixed" if len(cands) == 1 else "nested-CV"
         return predict, (f"diff-in-means probe per model; site in {list(sites)}; layer frac in {list(fracs)} ({sel}); "
-                         f"logistic C={args.C}")
+                         f"layer window +-{args.layer_window}; logistic C={args.C}")
 
     def perturb_direction(cases, args, supervised=False):
         acts = load_acts(cases, cv)
