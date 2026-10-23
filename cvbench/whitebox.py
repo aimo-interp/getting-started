@@ -179,6 +179,39 @@ def pca_fit_predict(acts, models, y, tr, te, site, frac, k, C):
     return pred, prob
 
 
+SITE_PAIRS = {"last": ("last_prompt", "pert_last"), "prob_mean": ("prob_mean", "pert_prob_mean"),
+              "tmpl_last": ("tmpl_last", "pert_tmpl_last")}
+
+
+def residual_features(acts, models, site, frac, feats):
+    """Label-free per-case shift scores (proj, resid, norm), r per model x perturbation type, z-scored within model."""
+    x_key, dx_key = SITE_PAIRS[site]
+    names = ("proj", "resid", "norm")
+    out = np.zeros((len(acts), len(feats)))
+    for m in np.unique(models):
+        idx = np.where(models == m)[0]
+        layer = layer_of(acts[idx[0]][x_key].shape[0], frac)
+        acc = np.zeros((len(idx), 3))
+        cnt = np.zeros(len(idx))
+        for kind in sorted({t for i in idx for t in acts[i]["pert_types"]}):
+            D = [acts[i][dx_key][acts[i]["pert_types"] == kind, layer] - acts[i][x_key][layer] for i in idx]
+            have = [j for j in range(len(idx)) if len(D[j])]
+            if len(have) < 3:
+                continue
+            for j in have:
+                r = np.concatenate([D[o] for o in have if o != j]).mean(0)   # leave this problem out
+                r /= np.linalg.norm(r) + 1e-8
+                p = D[j] @ r
+                scale = np.linalg.norm(acts[idx[j]][x_key][layer]) + 1e-8
+                acc[j] += [p.mean() / scale, np.linalg.norm(D[j] - p[:, None] * r, axis=1).mean() / scale,
+                           np.linalg.norm(D[j], axis=1).mean() / scale]
+                cnt[j] += 1
+        v = acc / np.maximum(cnt, 1)[:, None]
+        v = (v - v.mean(0)) / (v.std(0) + 1e-8)
+        out[idx] = v[:, [names.index(f) for f in feats]]
+    return out
+
+
 def register(methods, cv):
     def pca_probe(cases, args):
         acts = load_acts(cases, cv)
@@ -243,38 +276,6 @@ def register(methods, cv):
 
     methods["shift_resid"] = ("whitebox", shift_resid)
 
-
-SITE_PAIRS = {"last": ("last_prompt", "pert_last"), "prob_mean": ("prob_mean", "pert_prob_mean"),
-              "tmpl_last": ("tmpl_last", "pert_tmpl_last")}
-
-
-def residual_features(acts, models, site, frac, feats):
-    """Label-free per-case shift scores (proj, resid, norm), r per model x perturbation type, z-scored within model."""
-    x_key, dx_key = SITE_PAIRS[site]
-    names = ("proj", "resid", "norm")
-    out = np.zeros((len(acts), len(feats)))
-    for m in np.unique(models):
-        idx = np.where(models == m)[0]
-        layer = layer_of(acts[idx[0]][x_key].shape[0], frac)
-        acc = np.zeros((len(idx), 3))
-        cnt = np.zeros(len(idx))
-        for kind in sorted({t for i in idx for t in acts[i]["pert_types"]}):
-            D = [acts[i][dx_key][acts[i]["pert_types"] == kind, layer] - acts[i][x_key][layer] for i in idx]
-            have = [j for j in range(len(idx)) if len(D[j])]
-            if len(have) < 3:
-                continue
-            for j in have:
-                r = np.concatenate([D[o] for o in have if o != j]).mean(0)   # leave this problem out
-                r /= np.linalg.norm(r) + 1e-8
-                p = D[j] @ r
-                scale = np.linalg.norm(acts[idx[j]][x_key][layer]) + 1e-8
-                acc[j] += [p.mean() / scale, np.linalg.norm(D[j] - p[:, None] * r, axis=1).mean() / scale,
-                           np.linalg.norm(D[j], axis=1).mean() / scale]
-                cnt[j] += 1
-        v = acc / np.maximum(cnt, 1)[:, None]
-        v = (v - v.mean(0)) / (v.std(0) + 1e-8)
-        out[idx] = v[:, [names.index(f) for f in feats]]
-    return out
 
     def act_probe(cases, args):
         acts = load_acts(cases, cv)
