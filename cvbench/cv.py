@@ -309,6 +309,7 @@ def main() -> None:
     parser.add_argument("--shift-feats", nargs="+", default=["resid"], choices=["proj", "resid", "norm"])
     parser.add_argument("--with-probe", action="store_true", help="shift_resid: also add the resp_mean probe score")
     parser.add_argument("--seg-windows", nargs="+", default=None, help="seg_probe: fixed windows a-b over 10 segments.")
+    parser.add_argument("--seg-combine", action="store_true", help="seg_probe: use every window's score as a feature.")
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")
     parser.add_argument("--models", nargs="+", default=None, help="Restrict to these model ids (subset CV).")
     parser.add_argument("--no-write", action="store_true")

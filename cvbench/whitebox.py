@@ -351,11 +351,14 @@ def register(methods, cv):
 
         def predict(tr, te):
             make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand)
-            cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
-            F = make(cand, tr)
+            if args.seg_combine:  # one probe score per window, all fed to the logistic (layer fixed)
+                F = np.concatenate([make((s_, fracs[0]), tr) for s_ in sites], 1)
+            else:
+                cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
+                F = make(cand, tr)
             return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
 
-        sel = "fixed" if len(cands) == 1 else "nested-CV"
+        sel = "combined: one score per window" if args.seg_combine else ("fixed" if len(cands) == 1 else "nested-CV")
         return predict, (f"diff-in-means probe per model on a CoT window (10 segments); windows "
                          f"{['%d-%d' % w for w in windows]}; layer frac in {list(fracs)} ({sel}); logistic C={args.C}")
 
