@@ -38,14 +38,14 @@ Rows are in `cvbench/results.csv` (method `seg_probe`); loop log in
 whitebox probe/lens/attn/steer) was smoke-tested end to end at a 2k budget and
 submitted at full settings (N=10, 40 points, 16k budget):
 
-| Model | job name | work dir |
+| Model | where | work dir |
 |---|---|---|
-| Qwen/Qwen3.5-4B | `anchors` | `analysis/anchors/work/` |
-| Skywork/Skywork-OR1-Math-7B | `anchors_sky` | `analysis/anchors/work/Skywork_Skywork-OR1-Math-7B/` |
-| allenai/Olmo-3-7B-Think | `anchors_olmo` | `analysis/anchors/work/allenai_Olmo-3-7B-Think/` |
-| deepseek-ai/DeepSeek-R1-0528-Qwen3-8B | `anchors_ds` | `analysis/anchors/work/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B/` |
+| Qwen/Qwen3.5-4B | interactive H100, then job `anchors` on gpu-l40s (delayed start, resumes) | `analysis/anchors/work/` |
+| Skywork/Skywork-OR1-Math-7B | `anchors_sky`, feit-gpu-a100 | `analysis/anchors/work/Skywork_Skywork-OR1-Math-7B/` |
+| allenai/Olmo-3-7B-Think | `anchors_olmo`, gpu-a100 | `analysis/anchors/work/allenai_Olmo-3-7B-Think/` |
+| deepseek-ai/DeepSeek-R1-0528-Qwen3-8B | `anchors_ds`, deeplearn | `analysis/anchors/work/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B/` |
 
-Each job is submitted to 4 partitions; the first to start cancels its siblings.
+One pending job per partition (do not fan each model out to all four partitions).
 Logs: `analysis/anchors/work/logs/slurm_<jobid>.txt` and `<work dir>/logs/`.
 Every stage resumes; resubmit with the same `MODEL=... JOB_NAME=... TIME=24:00:00
 bash analysis/anchors/submit.sh` after a timeout. The attention stage
