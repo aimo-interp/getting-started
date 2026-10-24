@@ -1,8 +1,23 @@
-{"version": "2.1.0", "source": "loop", "timestamp": "2026-10-25T04:11:24+11:00", "status": "BOUNDED",
+{
+ "version": "2.1.0",
+ "source": "loop",
+ "timestamp": "2026-10-25T04:11:24+11:00",
+ "status": "BOUNDED",
  "results_tsv": "autoresearch/loop-261025-0356/results.tsv",
- "findings": ["seg_probe 0-5+5-9 (drop final 10% of CoT) cv 0.763 vs act_probe resp_mean 0.734; AUC flat 0.750 vs 0.758",
-              "final 10% of CoT carries no robustness signal (0.670 = chance)",
-              "nested window selection overfits (0.720)",
-              "anchors diagnostics submitted for 4 models (jobs anchors, anchors_sky, anchors_olmo, anchors_ds); see analysis/anchors/FINDINGS.md"],
- "config": {"goal": "anchor-informed probe pooling", "scope": "cvbench/, analysis/anchors/", "metric": "cv_score (cvbench/cv.py)",
-            "direction": "higher_is_better", "verify": "uv run cvbench/cv.py --methods seg_probe --seg-combine --seg-windows 0-5 5-9 --layer-frac 0.5 --no-write"}}
+ "findings": [
+  "seg_probe 0-5+5-9 (drop final 10% of CoT) cv 0.763 vs act_probe resp_mean 0.734; AUC flat 0.750 vs 0.758",
+  "final 10% of CoT carries no robustness signal (0.670 = chance)",
+  "nested window selection overfits (0.720)",
+  "anchors diagnostics submitted for 4 models (jobs anchors, anchors_sky, anchors_olmo, anchors_ds); see analysis/anchors/FINDINGS.md",
+  "sep_probe (semantic-entropy probe) fails: cv 0.666 / AUC 0.484; SEP cannot predict held-out entropy from 4 samples/prompt (85% zero targets)",
+  "direct answer entropy on X (leaky labelgen samples) AUC 0.739 on Skywork, complementary to probe (z-sum 0.839): test with fresh >=8 full-length samples",
+  "Qwen anchors: screen chunk 1/2 done locally; job 'anchors' on gpu-l40s resumes at 05:16; sky/olmo/ds one job per partition"
+ ],
+ "config": {
+  "goal": "anchor-informed probe pooling",
+  "scope": "cvbench/, analysis/anchors/",
+  "metric": "cv_score (cvbench/cv.py)",
+  "direction": "higher_is_better",
+  "verify": "uv run cvbench/cv.py --methods seg_probe --seg-combine --seg-windows 0-5 5-9 --layer-frac 0.5 --no-write"
+ }
+}
