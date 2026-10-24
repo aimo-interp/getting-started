@@ -14,6 +14,10 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
 * ``pool``: prompt-only forward passes for X and its 4 perturbations, saving at
   every layer the mean over the problem-text tokens and over the last 4 chat-template
   tokens (``prob_mean``/``tmpl_last`` and their ``pert_*`` counterparts).
+* ``segs``: the ``acts`` forward pass again, saving at every layer the mean over
+  each of ``--segments`` equal token segments of the greedy response
+  (``seg_mean`` [S, L+1, d]), so any contiguous pooling window over the CoT can be
+  scored offline (``whitebox.py seg_probe``).
 * ``sample``: the forced-answer perturbation probe (X + 4 perturbations,
   ``--n`` traces each, ``--budget`` thinking tokens, forced answers and
   answer log-probs).
@@ -129,6 +133,34 @@ def run_acts(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
 
 
 @torch.no_grad()
+def run_segs(model, tokenizer, model_id: str, todo: dict[str, str], segments: int) -> None:
+    out_dir = DATA / "segs" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    greedy = {r["group"]: r for r in read_jsonl(DATA / "greedy" / f"{safe(model_id)}.jsonl")}
+    groups = [g for g in todo if not (out_dir / f"{g}.npz").is_file()]
+    print(f"[segs] {model_id}: {len(groups)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    for k, g in enumerate(groups, 1):
+        prompt = format_problem(tokenizer, todo[g])
+        prompt_ids = tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=2048)["input_ids"]
+        response = greedy.get(g, {}).get("generated_text", "")
+        response_ids = tokenizer(response, add_special_tokens=False)["input_ids"][:4096]
+        p, n = len(prompt_ids), len(response_ids)
+        if n < segments:
+            print(f"  {k}/{len(groups)} {g}: only {n} resp tokens, skipped", flush=True)
+            continue
+        hs = model(input_ids=torch.tensor([prompt_ids + response_ids], device=device), output_hidden_states=True,
+                   logits_to_keep=1).hidden_states
+        bounds = np.linspace(0, n, segments + 1).round().astype(int)
+        seg = torch.stack([torch.stack([h[0, p + a:p + b].float().mean(0) for a, b in zip(bounds[:-1], bounds[1:])])
+                           for h in hs], 1)  # [S, L+1, d]
+        np.savez_compressed(out_dir / f"{g}.npz", seg_mean=seg.cpu().numpy().astype(np.float16), n_resp=n)
+        del hs
+        torch.cuda.empty_cache()
+        print(f"  {k}/{len(groups)} {g}: {n} resp tokens", flush=True)
+
+
+@torch.no_grad()
 def pooled(model, tokenizer, texts: list[str]) -> tuple[np.ndarray, np.ndarray]:
     """Per text: mean over the problem-text tokens and mean over the last 4 template tokens, [n, L+1, d] each."""
     device = model.get_input_embeddings().weight.device
@@ -180,11 +212,12 @@ def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, bu
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs"])
     parser.add_argument("--models", nargs="+", default=MODELS)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--budget", type=int, default=2048)
+    parser.add_argument("--segments", type=int, default=10)
     args = parser.parse_args()
 
     cases = read_jsonl(DATA / "cases.jsonl")
@@ -201,6 +234,8 @@ def main() -> None:
                     run_acts(model, tokenizer, model_id, todo)
                 elif stage == "pool":
                     run_pool(model, tokenizer, model_id, todo)
+                elif stage == "segs":
+                    run_segs(model, tokenizer, model_id, todo, args.segments)
                 else:
                     run_sample(model, tokenizer, model_id, todo, args.n, args.budget)
         finally:

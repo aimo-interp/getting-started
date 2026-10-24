@@ -17,6 +17,13 @@ Each case has, at every layer: ``last_prompt`` (last prompt token), ``resp_mean`
   h(dX) - h(X) on unit r) and off r (residual norm), relative to its norm.
   Hypothesis: a problem whose representation is pushed hard by surface edits
   is one the model is not robust on. Layer depth is picked by nested CV.
+* ``seg_probe``: ``act_probe`` with the response pooled over a window of the CoT
+  instead of all of it. ``data/cvbench/segs/`` (``generate.py --stages segs``) holds
+  per-layer means over 10 equal token segments; a window ``a-b`` averages
+  segments a..b-1 (``0-10`` = resp_mean up to rounding). Window and layer depth are
+  picked by nested CV, or fixed with ``--seg-windows`` / ``--layer-frac``.
+  Motivation: Thought Anchors finds that a few sentences (often a late commitment)
+  decide the answer, so the robustness signal may sit in part of the trace.
 * ``perturb_direction_sup``: as above plus a supervised direction in shift
   space, diff-in-means of the shift vectors mean_k(h(dX_k) - h(X)) between
   robust and non-robust training problems.
@@ -30,6 +37,8 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
 
 LAYER_FRACS = (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+# Windows over the 10 response segments: all, first/last 10/30/50%, middle 40%.
+SEG_WINDOWS = ((0, 10), (0, 1), (0, 3), (0, 5), (5, 10), (7, 10), (9, 10), (3, 7))
 _CACHE: dict = {}
 
 
@@ -47,6 +56,14 @@ def load_acts(cases, cv):
                 zp = np.load(pool)
                 row.update({k: zp[k].astype(np.float32) for k in ("prob_mean", "tmpl_last", "pert_prob_mean",
                                                                    "pert_tmpl_last")})
+            segs = cv.DATA / "segs" / cv.safe(c.model_id) / f"{c.group}.npz"
+            if segs.is_file():
+                seg = np.load(segs)["seg_mean"].astype(np.float32)
+                for a, b in SEG_WINDOWS:
+                    row[f"seg_{a}_{b}"] = seg[a:b].mean(0)
+            else:  # no segments (response too short): every window falls back to the full mean
+                for a, b in SEG_WINDOWS:
+                    row[f"seg_{a}_{b}"] = row["resp_mean"]
             acts.append(row)
         _CACHE[key] = acts
     return _CACHE[key]
@@ -322,7 +339,28 @@ def register(methods, cv):
                          f"4 code perturbations; layer frac in {list(fracs)} ({sel}); "
                          f"{'+ supervised shift direction; ' if supervised else ''}logistic C={args.C}")
 
+    def seg_probe(cases, args):
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        groups = cases.group.to_numpy()
+        windows = [tuple(map(int, w.split("-"))) for w in args.seg_windows] if args.seg_windows else SEG_WINDOWS
+        sites = [f"seg_{a}_{b}" for a, b in windows]
+        fracs = LAYER_FRACS if args.layer_frac is None else (args.layer_frac,)
+        cands = [(s_, f) for s_ in sites for f in fracs]
+
+        def predict(tr, te):
+            make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand)
+            cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
+            F = make(cand, tr)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        sel = "fixed" if len(cands) == 1 else "nested-CV"
+        return predict, (f"diff-in-means probe per model on a CoT window (10 segments); windows "
+                         f"{['%d-%d' % w for w in windows]}; layer frac in {list(fracs)} ({sel}); logistic C={args.C}")
+
     methods["act_probe"] = ("whitebox", act_probe)
+    methods["seg_probe"] = ("whitebox", seg_probe)
     methods["perturb_direction"] = ("whitebox", perturb_direction)
     methods["perturb_direction_sup"] = ("whitebox", lambda c, a: perturb_direction(c, a, True))
 
