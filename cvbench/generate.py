@@ -18,6 +18,11 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   each of ``--segments`` equal token segments of the greedy response
   (``seg_mean`` [S, L+1, d]), so any contiguous pooling window over the CoT can be
   scored offline (``whitebox.py seg_probe``).
+* ``sep``: training data for the semantic-entropy probe. For every labelgen prompt
+  of the model (originals and perturbed variants, ``data/labelgen/samples``), the
+  last-prompt-token hidden state at every layer (same template as ``acts``) and the
+  answer entropy over its saved samples (math: semantic entropy = entropy of the
+  final answer; no answer counts as one class) -> ``sep/<model>.npz``.
 * ``sample``: the forced-answer perturbation probe (X + 4 perturbations,
   ``--n`` traces each, ``--budget`` thinking tokens, forced answers and
   answer log-probs).
@@ -160,6 +165,36 @@ def run_segs(model, tokenizer, model_id: str, todo: dict[str, str], segments: in
         print(f"  {k}/{len(groups)} {g}: {n} resp tokens", flush=True)
 
 
+def answer_entropy(answers: list) -> float:
+    counts = np.unique(np.array(["NA" if a is None else str(a) for a in answers]), return_counts=True)[1]
+    q = counts / counts.sum()
+    return float(-(q * np.log(q)).sum())
+
+
+def run_sep(model, tokenizer, model_id: str, batch: int = 1) -> None:
+    # batch 1: unpadded, like the cvbench cases' acts last_prompt the probe is applied to
+    path = ROOT / "data" / "labelgen" / "samples" / f"{safe(model_id)}__default.jsonl"
+    out = DATA / "sep" / f"{safe(model_id)}.npz"
+    if not path.is_file() or out.is_file():
+        print(f"[sep] {model_id}: {'done' if out.is_file() else 'no labelgen samples'}", flush=True)
+        return
+    problems = {r["problem_id"]: r["problem"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    variants = {(r["problem_id"], r["type"], int(r["variant"])): r["text"]
+                for r in read_jsonl(ROOT / "data" / "labelgen" / "variants.jsonl")}
+    rows = []
+    for r in read_jsonl(path):
+        text = problems.get(r["problem_id"]) if r["type"] == "original" else variants.get(
+            (r["problem_id"], r["type"], int(r["variant"])))
+        if text and r.get("answers"):
+            rows.append((problems[r["problem_id"]], r["type"], text, answer_entropy(r["answers"])))
+    print(f"[sep] {model_id}: {len(rows)} prompts", flush=True)
+    tokenizer.padding_side = "left"
+    hs = [hidden_last(model, tokenizer, [t for _, _, t, _ in rows[i:i + batch]]) for i in range(0, len(rows), batch)]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(out, h=np.concatenate(hs).astype(np.float16), entropy=np.array([e for *_, e in rows]),
+                        problem=np.array([p for p, *_ in rows]), type=np.array([k for _, k, _, _ in rows]))
+
+
 @torch.no_grad()
 def pooled(model, tokenizer, texts: list[str]) -> tuple[np.ndarray, np.ndarray]:
     """Per text: mean over the problem-text tokens and mean over the last 4 template tokens, [n, L+1, d] each."""
@@ -212,7 +247,7 @@ def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, bu
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep"])
     parser.add_argument("--models", nargs="+", default=MODELS)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n", type=int, default=4)
@@ -234,6 +269,8 @@ def main() -> None:
                     run_acts(model, tokenizer, model_id, todo)
                 elif stage == "pool":
                     run_pool(model, tokenizer, model_id, todo)
+                elif stage == "sep":
+                    run_sep(model, tokenizer, model_id)
                 elif stage == "segs":
                     run_segs(model, tokenizer, model_id, todo, args.segments)
                 else:

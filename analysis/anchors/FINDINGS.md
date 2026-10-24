@@ -66,3 +66,18 @@ noise, relative to a number-free control: 5.15 vs 1.85), on all 8 traces; no KL
 spike at the step where the fragile failure happens. The shift tracks distractor
 salience, not fragility, matching the prompt-level `shift_resid` null in
 cvbench (cv 0.66-0.67, AUC 0.52-0.58). Direction dropped.
+
+## 4. Semantic-entropy probe (cvbench `sep_probe`)
+
+Direct answer entropy over the 4 labelgen samples on X predicts Skywork robustness
+with AUC 0.739 (n=36; rank-corr +0.48 with the resp_mean probe; z-sum AUC 0.839),
+but those samples are the ones the labels were built from (leaky, and partly label
+noise: mid-accuracy problems get noisy drops).
+
+`sep_probe` (ridge from last-prompt h to that entropy, trained on 512 Skywork /
+128 DeepSeek labelgen prompts minus test-fold problems) does not work: cv 0.666,
+AUC 0.484; with seg_probe 0.759 (vs 0.763 without). The probe barely predicts
+entropy on held-out problems (grouped-CV Spearman 0.08-0.16): with 4 samples per
+prompt 85% of targets are 0, over only 100 distinct problems. The SEP needs >= 8-10
+full-length samples per prompt on more problems (Kossen et al. used 10); the honest
+test is entropy from fresh full-length samples on the cvbench cases.

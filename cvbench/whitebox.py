@@ -24,6 +24,13 @@ Each case has, at every layer: ``last_prompt`` (last prompt token), ``resp_mean`
   picked by nested CV, or fixed with ``--seg-windows`` / ``--layer-frac``.
   Motivation: Thought Anchors finds that a few sentences (often a late commitment)
   decide the answer, so the robustness signal may sit in part of the trace.
+* ``sep_probe``: semantic-entropy probe (Kossen et al., 2024). Per model and fold, a
+  ridge regression from the last-prompt-token hidden state to the answer entropy of
+  the model's own samples, trained on every labelgen prompt (originals and perturbed
+  variants, ``data/cvbench/sep/``) whose problem is not in the test fold, then
+  applied to each case's X prompt; feature = -predicted entropy. Models without
+  labelgen samples get the prior (0). ``--sep-with-seg`` adds the seg_probe 0-5/5-9
+  scores. Hypothesis: problems the model is internally unsure about are less robust.
 * ``perturb_direction_sup``: as above plus a supervised direction in shift
   space, diff-in-means of the shift vectors mean_k(h(dX_k) - h(X)) between
   robust and non-robust training problems.
@@ -364,8 +371,50 @@ def register(methods, cv):
         return predict, (f"diff-in-means probe per model on a CoT window (10 segments); windows "
                          f"{['%d-%d' % w for w in windows]}; layer frac in {list(fracs)} ({sel}); logistic C={args.C}")
 
+    def sep_probe(cases, args):
+        from sklearn.linear_model import Ridge
+        from sklearn.preprocessing import StandardScaler
+
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        problems = cases.problem.to_numpy()
+        frac = 0.5 if args.layer_frac is None else args.layer_frac
+        sep = {}
+        for m in np.unique(models):
+            path = cv.DATA / "sep" / f"{cv.safe(m)}.npz"
+            if path.is_file():
+                z = np.load(path)
+                sep[m] = dict(h=z["h"].astype(np.float32), e=z["entropy"], problem=z["problem"])
+
+        def sep_feature(tr, te):
+            feat = np.zeros(len(acts))
+            held_out = set(problems[te])
+            for m, d in sep.items():
+                idx = np.where(models == m)[0]
+                layer = layer_of(d["h"].shape[1], frac)
+                keep = np.array([q not in held_out for q in d["problem"]])
+                scaler = StandardScaler().fit(d["h"][keep, layer])
+                reg = Ridge(alpha=args.sep_alpha).fit(scaler.transform(d["h"][keep, layer]), d["e"][keep])
+                H = np.stack([acts[i]["last_prompt"][layer] for i in idx])
+                pred = -reg.predict(scaler.transform(H))
+                tr_m = np.isin(idx, tr)
+                feat[idx] = (pred - pred[tr_m].mean()) / (pred[tr_m].std() + 1e-8)
+            return feat[:, None]
+
+        def predict(tr, te):
+            F = sep_feature(tr, te)
+            if args.sep_with_seg:
+                F = np.concatenate([F] + [diffmean_scores(acts, models, y, tr, None, w, frac) for w in ("seg_0_5", "seg_5_9")], 1)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        return predict, (f"semantic-entropy probe: ridge(alpha={args.sep_alpha}) last-prompt h -> answer entropy on labelgen "
+                         f"prompts minus test-fold problems; models with SEP data {[m.split('/')[-1] for m in sep]}; "
+                         f"layer frac {frac}{'; + seg_probe 0-5/5-9' if args.sep_with_seg else ''}; logistic C={args.C}")
+
     methods["act_probe"] = ("whitebox", act_probe)
     methods["seg_probe"] = ("whitebox", seg_probe)
+    methods["sep_probe"] = ("whitebox", sep_probe)
     methods["perturb_direction"] = ("whitebox", perturb_direction)
     methods["perturb_direction_sup"] = ("whitebox", lambda c, a: perturb_direction(c, a, True))
 
