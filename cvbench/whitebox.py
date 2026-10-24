@@ -353,7 +353,8 @@ def register(methods, cv):
         def predict(tr, te):
             make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand, window=args.layer_window)
             if args.seg_combine:  # one probe score per window, all fed to the logistic (layer fixed)
-                F = np.concatenate([make((s_, fracs[0]), tr) for s_ in sites], 1)
+                frac = 0.5 if args.layer_frac is None else args.layer_frac
+                F = np.concatenate([make((s_, frac), tr) for s_ in sites], 1)
             else:
                 cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
                 F = make(cand, tr)
