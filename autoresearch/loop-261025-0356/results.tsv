@@ -6,3 +6,5 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 3	2026-10-25T04:05:26+11:00	-	0.750	+0.001	-	-	discard	seg_probe halves + layer window +-2 (flat; +-1 0.748)
 4	2026-10-25T04:09:48+11:00	c6e0b3f	0.763	+0.014	-	-	keep	seg_probe combine 0-5,5-9 (drop final 10% answer wrap-up), auc 0.750; single 0-9 0.749
 5	2026-10-25T04:10:50+11:00	-	0.763	0.0	-	-	no-op	layer sensitivity of 0-5,5-9: 0.749/0.763/0.763/0.756 at frac .4/.5/.6/.7 vs resp_mean .733/.734/.734/.727 (acc gain at every layer; AUC flat)
+6	2026-10-25T04:51:07+11:00	8589ec2	0.666	-0.097	-	-	discard	sep_probe alone (auc 0.484); SEP held-out spearman 0.08-0.16, 4 samples/prompt 85% zero targets
+7	2026-10-25T04:51:07+11:00	8589ec2	0.759	-0.004	-	-	discard	sep_probe + seg_probe 0-5/5-9 (auc 0.739) vs seg alone 0.763
