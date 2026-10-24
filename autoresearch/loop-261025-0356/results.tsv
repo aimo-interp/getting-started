@@ -4,3 +4,5 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 1	2026-10-25T04:02:25+11:00	b27586d	0.720	-0.014	-	-	discard	seg_probe nested over 8 CoT windows x 8 layers (fixed 0-5: 0.743 post hoc, 9-10: 0.670); code kept as option
 2	2026-10-25T04:03:27+11:00	6ae3062	0.749	+0.015	-	-	keep	seg_probe combine halves 0-5,5-10 @0.5 (auc 0.767); thirds 0.742 auc 0.785
 3	2026-10-25T04:05:26+11:00	-	0.750	+0.001	-	-	discard	seg_probe halves + layer window +-2 (flat; +-1 0.748)
+4	2026-10-25T04:09:48+11:00	c6e0b3f	0.763	+0.014	-	-	keep	seg_probe combine 0-5,5-9 (drop final 10% answer wrap-up), auc 0.750; single 0-9 0.749
+5	2026-10-25T04:10:50+11:00	-	0.763	0.0	-	-	no-op	layer sensitivity of 0-5,5-9: 0.749/0.763/0.763/0.756 at frac .4/.5/.6/.7 vs resp_mean .733/.734/.734/.727 (acc gain at every layer; AUC flat)
