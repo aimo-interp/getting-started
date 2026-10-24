@@ -37,8 +37,9 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
 
 LAYER_FRACS = (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-# Windows over the 10 response segments: all, first/last 10/30/50%, middle 40%.
-SEG_WINDOWS = ((0, 10), (0, 1), (0, 3), (0, 5), (5, 10), (7, 10), (9, 10), (3, 7))
+# Windows over the 10 response segments: all, first/last 10/30/50%, middle 40%, and the
+# CoT without its final 10% (the answer wrap-up, where the probe is at chance).
+SEG_WINDOWS = ((0, 10), (0, 1), (0, 3), (0, 5), (5, 10), (7, 10), (9, 10), (3, 7), (0, 9), (5, 9))
 _CACHE: dict = {}
 
 
