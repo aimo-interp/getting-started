@@ -1,0 +1,6 @@
+# metric_direction: higher_is_better
+iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
+0	2026-10-25T03:56:21+11:00	4393a60	0.734	0.0	-	-	baseline	act_probe resp_mean frac0.5, all 82 cases (always_true 0.671)
+1	2026-10-25T04:02:25+11:00	b27586d	0.720	-0.014	-	-	discard	seg_probe nested over 8 CoT windows x 8 layers (fixed 0-5: 0.743 post hoc, 9-10: 0.670); code kept as option
+2	2026-10-25T04:03:27+11:00	6ae3062	0.749	+0.015	-	-	keep	seg_probe combine halves 0-5,5-10 @0.5 (auc 0.767); thirds 0.742 auc 0.785
+3	2026-10-25T04:05:26+11:00	-	0.750	+0.001	-	-	discard	seg_probe halves + layer window +-2 (flat; +-1 0.748)

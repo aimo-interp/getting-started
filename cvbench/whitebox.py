@@ -350,7 +350,7 @@ def register(methods, cv):
         cands = [(s_, f) for s_ in sites for f in fracs]
 
         def predict(tr, te):
-            make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand)
+            make = lambda cand, rows: diffmean_scores(acts, models, y, rows, None, *cand, window=args.layer_window)
             if args.seg_combine:  # one probe score per window, all fed to the logistic (layer fixed)
                 F = np.concatenate([make((s_, fracs[0]), tr) for s_ in sites], 1)
             else:
