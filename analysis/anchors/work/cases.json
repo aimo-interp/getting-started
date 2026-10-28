@@ -1,0 +1,251 @@
+[
+ {
+  "group": "2ca839cfbfc6",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Alice and Bob are each holding some integer number of sweets. Alice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+  "is_robust": true,
+  "max_drop": -0.05,
+  "gold": null,
+  "probe_score": 0.4353976845741272,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Alice and Bob are each holding soome integer number of sweets. Alice says to Bob: ``If we each added the number of swees we're hloding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four timse yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "typos2-s0": "Alice and Bob are each holding some integer number of sweets. Alicce says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be doble yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "distract-s0": "Alice and Bob are each holding some integer number of sweets. A local mathematics club, founded in 1990, has 272 members. Alice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "rephrase-s0": "Here is a competition problem. Alice and Bob are each holding some integer number of sweets. Alice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "typos-s1": "Alice and Bob are each holding some integer number of sweets. Aliice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be foour times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alce and Bob's ages?",
+   "typos2-s1": "Alice and Bob are each hoolding some integer number of sweets. Alce says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets bceause then botth our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "distract-s1": "Alice and Bob are each holding some integer number of sweets. A local mathematics club, founded in 1979, has 276 members. Alice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?",
+   "rephrase-s1": "Answer the following. Alice and Bob are each holding some integer number of sweets. Alice says to Bob: ``If we each added the number of sweets we're holding to our (positive integer) age, my answer would be double yours. If we took the product, then my answer would be four times yours.'' Bob replies: ``Why don't you give me five of your sweets because then both our sum and product would be equal.'' What is the product of Alice and Bob's ages?"
+  }
+ },
+ {
+  "group": "d06c3e7f2d19",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThere are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted with multiplicity?",
+  "is_robust": true,
+  "max_drop": -0.01,
+  "gold": null,
+  "probe_score": -0.2460046112537384,
+  "probe_pred": false,
+  "probe_correct": false,
+  "variants": {
+   "typos-s0": "The Fibonacci numbers are defind as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThere are $N$ positive integers $n$ strictly less than $10^{101}$ suuch that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted wiith multiplicity?",
+   "rename-s0": "The Fibonacci numbers are defined as follows: $T_0 = 0$, $T_1 = 1$, and $T_{r+1} = T_r + T_{r-1}$ for $r \\geq 1$.\nThere are $B$ positive integers $r$ strictly less than $10^{101}$ such that $r^2 + (r+1)^2$ is a multiple of 5\nbut $T_{r-1}^2 + T_r^2$ is not. How many prime factors does $B$ have, counted with multiplicity?",
+   "distract-s0": "The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThe problem was first written on a whiteboard that is 290 centimetres wide. There are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted with multiplicity?",
+   "rephrase-s0": "Solve the following problem. The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThere are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted with multiplicity?",
+   "typos-s1": "The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThere are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multipel of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How may prime factors does $N$ have, counted with multiplicity?",
+   "rename-s1": "The Fibonacci numbers are defined as follows: $L_0 = 0$, $L_1 = 1$, and $L_{c+1} = L_c + L_{c-1}$ for $c \\geq 1$.\nThere are $M$ positive integers $c$ strictly less than $10^{101}$ such that $c^2 + (c+1)^2$ is a multiple of 5\nbut $L_{c-1}^2 + L_c^2$ is not. How many prime factors does $M$ have, counted with multiplicity?",
+   "distract-s1": "The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nA local mathematics club, founded in 1952, has 74 members. There are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted with multiplicity?",
+   "rephrase-s1": "Here is a competition problem. The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_1 = 1$, and $F_{n+1} = F_n + F_{n-1}$ for $n \\geq 1$.\nThere are $N$ positive integers $n$ strictly less than $10^{101}$ such that $n^2 + (n+1)^2$ is a multiple of 5\nbut $F_{n-1}^2 + F_n^2$ is not. How many prime factors does $N$ have, counted with multiplicity?"
+  }
+ },
+ {
+  "group": "8cfb5ed34810",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "An urn contains $n$ marbles. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $n$ for which this is possible.",
+  "is_robust": true,
+  "max_drop": 0.0,
+  "gold": null,
+  "probe_score": 0.23030522465705872,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "An urn contains $n$ marbles. Each maarble is either red or blue, and there are at least $7$ mrables of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ lest values of $n$ for which this is possible.",
+   "rename-s0": "An urn contains $p$ marbles. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $p$ for which this is possible.",
+   "distract-s0": "An urn contains $n$ marbles. The problem was first written on a whiteboard that is 294 centimetres wide. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $n$ for which this is possible.",
+   "rephrase-s0": "Here is a competition problem. An urn contains $n$ marbles. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Determine the sum of the $5$ least values of $n$ for which this is possible.",
+   "typos-s1": "An urn contains $n$ marbles. Each marble is either red or blue, and tehre are at least $7$ marbles of each color. When $7$ marbles are drawn randmly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $n$ for which this is possible.",
+   "rename-s1": "An urn contains $q$ marbles. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $q$ for which this is possible.",
+   "distract-s1": "An urn contains $n$ marbles. Last week the author solved 188 other puzzles before this one. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Find the sum of the $5$ least values of $n$ for which this is possible.",
+   "rephrase-s1": "Answer the following. An urn contains $n$ marbles. Each marble is either red or blue, and there are at least $7$ marbles of each color. When $7$ marbles are drawn randomly from the urn without replacement, the probability that exactly $4$ of them are red equals the probability that exactly $5$ of them are red. Determine the sum of the $5$ least values of $n$ for which this is possible."
+  }
+ },
+ {
+  "group": "a59a836b9807",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. Let $D$ be the foot of the perpendicular from $C$ to the line $AB$. What is the greatest possible length of segment $CD$?",
+  "is_robust": true,
+  "max_drop": 0.01,
+  "gold": null,
+  "probe_score": 0.4805581271648407,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. Let $D$ be the fot of the perpendicular from $C$ to the lien $AB$. What is the greatest possible length of segment $CD$?",
+   "rename-s0": "Triangle $ABC$ has side length $AB = 20$ and circumradius $K = 26$. Let $W$ be the foot of the perpendicular from $F$ to the line $AB$. What is the greatest possible length of segment $CD$?",
+   "distract-s0": "Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. The problem was first written on a whiteboard that is 150 centimetres wide. Let $D$ be the foot of the perpendicular from $C$ to the line $AB$. What is the greatest possible length of segment $CD$?",
+   "rephrase-s0": "Here is a competition problem. Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. Let $D$ be the foot of the perpendicular from $C$ to the line $AB$. Determine the greatest possible length of segment $CD$?",
+   "typos-s1": "Triaangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. Let $D$ be the foot of the perpendicular fom $C$ to the line $AB$. What is the greatest possible length of segmetn $CD$?",
+   "rename-s1": "Triangle $ABC$ has side length $AB = 20$ and circumradius $G = 26$. Let $Q$ be the foot of the perpendicular from $F$ to the line $AB$. What is the greatest possible length of segment $CD$?",
+   "distract-s1": "Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. The problem was first written on a whiteboard that is 140 centimetres wide. Let $D$ be the foot of the perpendicular from $C$ to the line $AB$. What is the greatest possible length of segment $CD$?",
+   "rephrase-s1": "Answer the following. Triangle $ABC$ has side length $AB = 20$ and circumradius $R = 26$. Let $D$ be the foot of the perpendicular from $C$ to the line $AB$. Determine the greatest possible length of segment $CD$?"
+  }
+ },
+ {
+  "group": "f3d7b78d243a",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Find the sum of all real numbers $r$ such that there is at least one point where the circle with radius $r$ centered at $(4, 39)$ is tangent to the parabola with equation $2y = x^2 - 8x + 12.$",
+  "is_robust": true,
+  "max_drop": 0.01,
+  "gold": null,
+  "probe_score": 0.41882622241973877,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Find the sum of all real numbers $r$ sch that there is at least one point where the circle wth radius $r$ centered at $(4, 39)$ is tangent to the parabola with equation $2y = x^2 - 8x + 12.$",
+   "rename-s0": "Find the sum of all real numbers $t$ such that there is at least one point where the circle with radius $t$ centered at $(4, 39)$ is tangent to the parabola with equation $2g = z^2 - 8z + 12.$",
+   "distract-s0": "A student copied this problem into a notebook with 177 pages. Find the sum of all real numbers $r$ such that there is at least one point where the circle with radius $r$ centered at $(4, 39)$ is tangent to the parabola with equation $2y = x^2 - 8x + 12.$",
+   "rephrase-s0": "Here is a competition problem. Determine the sum of all real numbers $r$ such that there is at least one point where the circle with radius $r$ centered at $(4, 39)$ is tangent to the parabola with equation $2y = x^2 - 8x + 12.$",
+   "typos-s1": "Fidn the sum of all real numbers $r$ such thta there is at least one point where the circle with radius $r$ centered at $(4, 39)$ is tangnet to the parabola with equation $2y = x^2 - 8x + 12.$",
+   "rename-s1": "Find the sum of all real numbers $f$ such that there is at least one point where the circle with radius $f$ centered at $(4, 39)$ is tangent to the parabola with equation $2d = m^2 - 8m + 12.$",
+   "distract-s1": "Last week the author solved 244 other puzzles before this one. Find the sum of all real numbers $r$ such that there is at least one point where the circle with radius $r$ centered at $(4, 39)$ is tangent to the parabola with equation $2y = x^2 - 8x + 12.$"
+  }
+ },
+ {
+  "group": "f862f0368b2a",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "An isosceles trapezoid has an inscribed circle tangent to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $r$ and $s$, with $r \\neq s$. Find $r^2+s^2$",
+  "is_robust": true,
+  "max_drop": 0.01,
+  "gold": null,
+  "probe_score": 0.8021333813667297,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "An isosceles trapezoid has an inscribed cicrle tangent to eaach of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid havve lengths $r$ and $s$, with $r \\neq s$. Find $r^2+s^2$",
+   "rename-s0": "An isosceles trapezoid has an inscribed circle tangent to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $j$ and $z$, with $j \\neq z$. Find $j^2+z^2$",
+   "distract-s0": "An isosceles trapezoid has an inscribed circle tangent to each of its four sides. Last week the author solved 334 other puzzles before this one. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $r$ and $s$, with $r \\neq s$. Find $r^2+s^2$",
+   "rephrase-s0": "Solve the following problem. An isosceles trapezoid has an inscribed circle tangent to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $r$ and $s$, with $r \\neq s$. Determine $r^2+s^2$",
+   "typos-s1": "An isosceles trapezoid has an inscribed circle tangennt to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezooid have lengths $r$ and $s$, with $r \\neq s$. Find $r^2+s^2$",
+   "rename-s1": "An isosceles trapezoid has an inscribed circle tangent to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $t$ and $j$, with $t \\neq j$. Find $t^2+j^2$",
+   "distract-s1": "An isosceles trapezoid has an inscribed circle tangent to each of its four sides. Last week the author solved 389 other puzzles before this one. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $r$ and $s$, with $r \\neq s$. Find $r^2+s^2$",
+   "rephrase-s1": "Consider the following question carefully. An isosceles trapezoid has an inscribed circle tangent to each of its four sides. The radius of the circle is $3$, and the area of the trapezoid is $72$. Let the parallel sides of the trapezoid have lengths $r$ and $s$, with $r \\neq s$. Determine $r^2+s^2$"
+  }
+ },
+ {
+  "group": "26a263ad8113",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$",
+  "is_robust": true,
+  "max_drop": 0.04,
+  "gold": null,
+  "probe_score": 0.2665403485298157,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Find the sum of all integer baases $b>9$ for which $17_b$ is a divisor of $97_b.$",
+   "rename-s0": "Find the sum of all integer bases $u>9$ for which $17_u$ is a divisor of $97_u.$",
+   "distract-s0": "A local mathematics club, founded in 1990, has 203 members. Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$",
+   "rephrase-s0": "Here is a competition problem. Determine the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$",
+   "rename-s1": "Find the sum of all integer bases $d>9$ for which $17_d$ is a divisor of $97_d.$",
+   "distract-s1": "The problem was first written on a whiteboard that is 106 centimetres wide. Find the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$",
+   "rephrase-s1": "Solve the following problem. Determine the sum of all integer bases $b>9$ for which $17_b$ is a divisor of $97_b.$"
+  }
+ },
+ {
+  "group": "0412b80ad1a4",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Find $m+n.$ Here $i=\\sqrt{-1}.$",
+  "is_robust": true,
+  "max_drop": 0.05,
+  "gold": null,
+  "probe_score": 0.7528144717216492,
+  "probe_pred": true,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. The sum of all possible valus of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Fid $m+n.$ Here $i=\\sqrt{-1}.$",
+   "rename-s0": "Let $s$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $r$. The sum of all possible values of $s$ can be written as $\\frac{g}{a},$ where $g$ and $a$ are relatively prime positive integers. Find $g+a.$ Here $i=\\sqrt{-1}.$",
+   "distract-s0": "Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. Last week the author solved 359 other puzzles before this one. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Find $m+n.$ Here $i=\\sqrt{-1}.$",
+   "rephrase-s0": "Consider the following question carefully. Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Determine $m+n.$ Here $i=\\sqrt{-1}.$",
+   "typos-s1": "Let $k$ be a rela number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas eactly one complex solution $z$. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ whree $m$ and $n$ are relaitvely prime positive integers. Find $m+n.$ Here $i=\\sqrt{-1}.$",
+   "rename-s1": "Let $g$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $u$. The sum of all possible values of $g$ can be written as $\\frac{r}{h},$ where $r$ and $h$ are relatively prime positive integers. Find $r+h.$ Here $i=\\sqrt{-1}.$",
+   "distract-s1": "Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. The problem was first written on a whiteboard that is 330 centimetres wide. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Find $m+n.$ Here $i=\\sqrt{-1}.$",
+   "rephrase-s1": "Here is a competition problem. Let $k$ be a real number such that the system\n\\begin{align*} |25+20i-z|&=5\\\\ |z-4-k|&=|z-3i-k| \\\\ \\end{align*}\nhas exactly one complex solution $z$. The sum of all possible values of $k$ can be written as $\\frac{m}{n},$ where $m$ and $n$ are relatively prime positive integers. Determine $m+n.$ Here $i=\\sqrt{-1}.$"
+  }
+ },
+ {
+  "group": "7443669f7e90",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} S$ is divided by $1000.$",
+  "is_robust": false,
+  "max_drop": 0.27,
+  "gold": null,
+  "probe_score": -0.218908429145813,
+  "probe_pred": false,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remanider when the greatest integer leess than or equal to $10^{100} S$ is diviided by $1000.$",
+   "rename-s0": "Let $L$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} L$ is divided by $1000.$",
+   "distract-s0": "A student copied this problem into a notebook with 240 pages. Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} S$ is divided by $1000.$",
+   "rephrase-s0": "Consider the following question carefully. Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} S$ is divided by $1000.$",
+   "typos-s1": "Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer leess than or equal to $10^{100} S$ is dividd by $1000.$",
+   "rename-s1": "Let $N$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} N$ is divided by $1000.$",
+   "distract-s1": "The problem was first written on a whiteboard that is 56 centimetres wide. Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} S$ is divided by $1000.$",
+   "rephrase-s1": "Answer the following. Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the greatest integer less than or equal to $10^{100} S$ is divided by $1000.$"
+  }
+ },
+ {
+  "group": "f02e2f662264",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integer such that $2^k$ divides $N$. What is the remainder when $2^k$ is divided by $20^3$?",
+  "is_robust": false,
+  "max_drop": 0.27,
+  "gold": null,
+  "probe_score": -0.2503388822078705,
+  "probe_pred": false,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative inteegr such taht $2^k$ divides $N$. What is the remainder when $2^k$ is divided by $20^3$?",
+   "rename-s0": "Define a function $a \\colon \\mathbb{U}_{\\geq 1} \\to \\mathbb{U}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $G=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $P = a{\\left(G^{7}\\right)} - a{\\left(G^{7}-1\\right)}$. Let $u$ be the largest non-negative integer such that $2^u$ divides $P$. What is the remainder when $2^u$ is divided by $20^3$?",
+   "distract-s0": "Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\nThe problem was first written on a whiteboard that is 271 centimetres wide. \\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integer such that $2^k$ divides $N$. What is the remainder when $2^k$ is divided by $20^3$?",
+   "rephrase-s0": "Consider the following question carefully. Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integer such that $2^k$ divides $N$. Determine the remainder when $2^k$ is divided by $20^3$?",
+   "typos-s1": "Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integeer such that $2^k$ divides $N$. What is the remaindder when $2^k$ is divided by $20^3$?",
+   "rename-s1": "Define a function $m \\colon \\mathbb{W}_{\\geq 1} \\to \\mathbb{W}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $J=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $H = m{\\left(J^{7}\\right)} - m{\\left(J^{7}-1\\right)}$. Let $v$ be the largest non-negative integer such that $2^v$ divides $H$. What is the remainder when $2^v$ is divided by $20^3$?",
+   "distract-s1": "Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\nLast week the author solved 135 other puzzles before this one. \\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integer such that $2^k$ divides $N$. What is the remainder when $2^k$ is divided by $20^3$?",
+   "rephrase-s1": "Answer the following. Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\lfloor\\frac1j + \\frac{n-i}{n}\\right\\rfloor.\n\\end{equation*}\nLet $M=2 \\cdot 3 \\cdot 5 \\cdot 7 \\cdot 11 \\cdot 13$ and let $N = f{\\left(M^{7}\\right)} - f{\\left(M^{7}-1\\right)}$. Let $k$ be the largest non-negative integer such that $2^k$ divides $N$. Determine the remainder when $2^k$ is divided by $20^3$?"
+  }
+ },
+ {
+  "group": "7ee9d4437899",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $N$.",
+  "is_robust": false,
+  "max_drop": 0.4,
+  "gold": null,
+  "probe_score": 0.1890428364276886,
+  "probe_pred": true,
+  "probe_correct": false,
+  "variants": {
+   "typos-s0": "Let $N$ be the number of positive integr divisors of $17017^{17}$ that leave a remainder of $5$ wehn divided by $12$. Find $N$.",
+   "rename-s0": "Let $G$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $G$.",
+   "distract-s0": "Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. The problem was first written on a whiteboard that is 71 centimetres wide. Find $N$.",
+   "rephrase-s0": "Solve the following problem. Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Determine $N$.",
+   "typos-s1": "Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remander of $5$ when dividded by $12$. Find $N$.",
+   "rename-s1": "Let $L$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $L$.",
+   "distract-s1": "Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. The competition hall had 104 chairs, of which 2 were blue. Find $N$."
+  }
+ },
+ {
+  "group": "45c534741418",
+  "model_id": "Qwen/Qwen3.5-4B",
+  "problem": "Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAcross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?",
+  "is_robust": false,
+  "max_drop": 0.68,
+  "gold": null,
+  "probe_score": -0.2937721312046051,
+  "probe_pred": false,
+  "probe_correct": true,
+  "variants": {
+   "typos-s0": "Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nArcoss all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how mny different values can $f(3520)$ take?",
+   "rename-s0": "Let $g \\colon \\mathbb{V}_{\\geq 1} \\to \\mathbb{V}_{\\geq 1}$ be a function such that for all positive integers $w$ and $j$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAcross all functions $g$ such that $g(j) \\leq 617$ for all $j \\leq 617$, how many different values can $g(3520)$ take?",
+   "distract-s0": "Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\nLast week the author solved 37 other puzzles before this one. \\end{equation*}\nAcross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?",
+   "rephrase-s0": "Solve the following problem. Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAcross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?",
+   "typos-s1": "Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positiev integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?",
+   "rename-s1": "Let $g \\colon \\mathbb{X}_{\\geq 1} \\to \\mathbb{X}_{\\geq 1}$ be a function such that for all positive integers $r$ and $t$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAcross all functions $g$ such that $g(t) \\leq 617$ for all $t \\leq 617$, how many different values can $g(3520)$ take?",
+   "distract-s1": "Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\nA student copied this problem into a notebook with 456 pages. \\end{equation*}\nAcross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?",
+   "rephrase-s1": "Answer the following. Let $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ be a function such that for all positive integers $m$ and $n$, \n\\begin{equation*}\n    f(m) + f(n) = f(m + n + mn).\n\\end{equation*}\nAcross all functions $f$ such that $f(n) \\leq 617$ for all $n \\leq 617$, how many different values can $f(3520)$ take?"
+  }
+ }
+]
