@@ -125,6 +125,9 @@ def openrouter_sample(args, key: str, text: str) -> tuple[int | None, int, str, 
     }
     if args.effort != "default":
         body["reasoning"] = {"effort": args.effort}
+    if getattr(args, "quantizations", None):
+        # Only route to providers serving these precisions (e.g. bf16, fp8).
+        body["provider"] = {"quantizations": list(args.quantizations)}
     request = urllib.request.Request(
         OPENROUTER_URL,
         data=json.dumps(body).encode(),
