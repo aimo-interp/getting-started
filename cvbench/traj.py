@@ -28,7 +28,7 @@ import whitebox as wb  # noqa: E402
 
 FRAC = 0.5            # layer depth of the trajectory
 END = 9               # last segment kept: drop the answer wrap-up (segment 9)
-FEATS = ["step_mean", "norm_slope", "tort"]
+FEATS = ["step_mean", "norm_slope"]
 WITH_PROBE = True     # stack with the seg_probe 0-5 / 5-9 scores
 C = 0.3
 
