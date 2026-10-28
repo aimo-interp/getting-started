@@ -4,3 +4,7 @@ data/
 dist/
 .idea/
 solutions/*.zip
+.env
+# slurm job logs (the folder itself is kept: sbatch does not create it)
+slurm_out/*
+!slurm_out/.gitkeep

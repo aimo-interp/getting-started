@@ -24,7 +24,7 @@ Reads ``work/selection.json`` and, where available, ``work/anchors.jsonl``.
   probe layer, u pointing toward "not robust", for every generated token, and
   resample. Control: a random unit direction at the largest alpha.
 
-    uv run analysis/anchors/whitebox.py --stages probe lens attn steer
+    uv run solutions/anchors/whitebox.py --stages probe lens attn steer
 """
 
 from __future__ import annotations
@@ -45,10 +45,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path[:0] = [str(ROOT / "datagen"), str(HERE)]
 
-from common import SOLVE_SUFFIX, extract_answer, read_jsonl  # noqa: E402
+from common import SOLVE_SUFFIX, extract_answer, read_jsonl, tokenizer_path  # noqa: E402
 from resample import choose_points, curve_features, sentence_ends, thinking_of  # noqa: E402
 
-WORK = Path(os.environ.get("ANCHORS_WORK", HERE / "work"))
+WORK = Path(os.environ.get("ANCHORS_WORK", ROOT / "data" / "anchors"))
 FORCE = "\n</think>\n\nThe final answer is $\\boxed{"
 
 
@@ -61,7 +61,7 @@ class Model:
     def __init__(self, model_id: str):
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        self.tok = AutoTokenizer.from_pretrained(model_id)
+        self.tok = AutoTokenizer.from_pretrained(tokenizer_path(model_id))
         self.model = AutoModelForCausalLM.from_pretrained(model_id, dtype=torch.bfloat16, device_map="cuda").eval()
         self.text = next(m for m in self.model.modules()
                          if hasattr(m, "layers") and hasattr(m, "norm") and hasattr(m, "embed_tokens"))

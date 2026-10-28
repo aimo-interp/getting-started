@@ -1,31 +1,0 @@
-deepseek-ai/DeepSeek-R1-0528-Qwen3-8B (default, vllm): 100 problems, 677 prompts to sample, 0 already done -> /data/gpfs/projects/punim0478/bansaab/aimo_interp/data/labelgen/samples/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B__default.jsonl
-/home/bansaab/.local/lib/python3.9/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
-  import pynvml  # type: ignore[import]
-INFO 10-22 01:26:30 [__init__.py:239] Automatically detected platform cuda.
-Unrecognized keys in `rope_scaling` for 'rope_type'='yarn': {'attn_factor'}
-`torch_dtype` is deprecated! Use `dtype` instead!
-INFO 10-22 01:27:08 [config.py:689] This model supports multiple tasks: {'reward', 'embed', 'score', 'classify', 'generate'}. Defaulting to 'generate'.
-INFO 10-22 01:27:08 [config.py:1901] Chunked prefill is enabled with max_num_batched_tokens=8192.
-Unrecognized keys in `rope_scaling` for 'rope_type'='yarn': {'attn_factor'}
-INFO 10-22 01:27:13 [core.py:61] Initializing a V1 LLM engine (v0.8.4) with config: model='deepseek-ai/DeepSeek-R1-0528-Qwen3-8B', speculative_config=None, tokenizer='deepseek-ai/DeepSeek-R1-0528-Qwen3-8B', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=10240, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto,  device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='auto', reasoning_backend=None), observability_config=ObservabilityConfig(show_hidden_metrics=False, otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=0, served_model_name=deepseek-ai/DeepSeek-R1-0528-Qwen3-8B, num_scheduler_steps=1, multi_step_stream_outputs=True, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=True, disable_mm_preprocessor_cache=False, mm_processor_kwargs=None, pooler_config=None, compilation_config={"level":3,"custom_ops":["none"],"splitting_ops":["vllm.unified_attention","vllm.unified_attention_with_output"],"use_inductor":true,"compile_sizes":[],"use_cudagraph":true,"cudagraph_num_of_warmups":1,"cudagraph_capture_sizes":[512,504,496,488,480,472,464,456,448,440,432,424,416,408,400,392,384,376,368,360,352,344,336,328,320,312,304,296,288,280,272,264,256,248,240,232,224,216,208,200,192,184,176,168,160,152,144,136,128,120,112,104,96,88,80,72,64,56,48,40,32,24,16,8,4,2,1],"max_capture_size":512}
-WARNING 10-22 01:27:19 [utils.py:2444] Methods determine_num_available_blocks,device_config,get_cache_block_size_bytes,initialize_cache not implemented in <vllm.v1.worker.gpu_worker.Worker object at 0x14e4a1ac2670>
-INFO 10-22 01:27:20 [parallel_state.py:959] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0
-INFO 10-22 01:27:20 [cuda.py:221] Using Flash Attention backend on V1 engine.
-INFO 10-22 01:27:20 [gpu_model_runner.py:1276] Starting to load model deepseek-ai/DeepSeek-R1-0528-Qwen3-8B...
-WARNING 10-22 01:27:21 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
-INFO 10-22 01:27:22 [weight_utils.py:265] Using model weights format ['*.safetensors']
-Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
-Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:08<00:08,  8.53s/it]
-Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:16<00:00,  8.24s/it]
-Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:16<00:00,  8.28s/it]
-
-INFO 10-22 01:27:39 [loader.py:458] Loading weights took 16.70 seconds
-INFO 10-22 01:27:39 [gpu_model_runner.py:1291] Model loading took 15.2898 GiB and 18.747525 seconds
-INFO 10-22 01:28:05 [backends.py:416] Using cache directory: /data/gpfs/projects/punim0478/bansaab/.cache/vllm/torch_compile_cache/789da45a47/rank_0_0 for vLLM's torch.compile
-INFO 10-22 01:28:05 [backends.py:426] Dynamo bytecode transform time: 26.13 s
-INFO 10-22 01:28:10 [backends.py:132] Cache the graph of shape None for later use
-INFO 10-22 01:28:41 [backends.py:144] Compiling a graph for general shape takes 34.86 s
-INFO 10-22 01:29:15 [monitor.py:33] torch.compile takes 60.99 s in total
-INFO 10-22 01:29:16 [kv_cache_utils.py:634] GPU KV cache size: 133,184 tokens
-INFO 10-22 01:29:16 [kv_cache_utils.py:637] Maximum concurrency for 10,240 tokens per request: 13.01x
-[2026-10-22T01:29:17.021] error: *** JOB 33615000 ON spartan-gpgpu095 CANCELLED AT 2026-10-22T01:29:17 DUE to SIGNAL Terminated ***

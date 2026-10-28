@@ -11,7 +11,9 @@ For each (model, effort, problem)::
 Problems the model does not solve reliably on the original
 (``base_accuracy < --min-base-accuracy``) are dropped, following the
 organizers' rule of dropping rows where "the original model is not robustly
-correct". Output: ``<work-dir>/labels.jsonl``, which
+correct". ``--extra-samples-dir`` pools in more samples of the same prompts (same
+problem, type and variant; e.g. ``data/cvbench/sep2/samples``, 10 per prompt) without
+adding prompts. Output: ``<work-dir>/labels.jsonl``, which
 ``extract_features.py --extra-rows`` appends to the organizer rows.
 
 Run in the project environment: ``uv run datagen/label.py``.
@@ -37,6 +39,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
     parser.add_argument("--min-base-accuracy", type=float, default=0.5)
+    parser.add_argument("--extra-samples-dir", type=Path, action="append", default=[],
+                        help="More samples of the prompts already in <work-dir>/samples, pooled in. Repeatable.")
     return parser.parse_args()
 
 
@@ -44,12 +48,23 @@ def main() -> None:
     args = parse_args()
     problems = {row["problem_id"]: row for row in read_jsonl(args.work_dir / "problems.jsonl")}
     groups: dict[tuple[str, str, str], dict[str, list[bool]]] = defaultdict(lambda: defaultdict(list))
-    for path in sorted((args.work_dir / "samples").glob("*.jsonl")):
-        if path.name.endswith(".traces.jsonl"):  # full responses, written by sample.py
-            continue
-        for row in read_jsonl(path):
-            key = (row["model_id"], row["reasoning_effort"], row["problem_id"])
-            groups[key][row["type"]].extend(row["correct"])
+    prompts = set()
+    pooled = Counter()
+    for samples_dir in [args.work_dir / "samples", *args.extra_samples_dir]:
+        extra = samples_dir != args.work_dir / "samples"
+        for path in sorted(samples_dir.glob("*.jsonl")):
+            if path.name.count(".") > 1:  # .traces (full responses), .forced (cvbench/force_answers.py)
+                continue
+            for row in read_jsonl(path):
+                key = (row["model_id"], row["reasoning_effort"], row["problem_id"])
+                prompt = (*key, row["type"], int(row.get("variant") or 0))
+                if extra and prompt not in prompts:
+                    continue
+                prompts.add(prompt)
+                pooled[extra] += len(row["correct"])
+                groups[key][row["type"]].extend(row["correct"])
+    if args.extra_samples_dir:
+        print(f"samples: {pooled[False]} from {args.work_dir / 'samples'}, {pooled[True]} pooled in")
 
     rows, dropped = [], Counter()
     for (model_id, effort, pid), by_type in sorted(groups.items()):

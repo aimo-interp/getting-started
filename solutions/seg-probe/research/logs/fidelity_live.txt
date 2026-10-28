@@ -1,0 +1,39 @@
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+[seg-probe    12.4s] Qwen/Qwen3.5-4B: 12 problems, layer 16/32
+[seg-probe   162.7s] Qwen/Qwen3.5-4B: batch 1/1 in 150s
+[seg-probe   163.4s] Qwen/Qwen3.5-4B: 9/12 predicted robust
+predict_robustness: 163s for 12 problems
+2ca839cfbfc6: same_text=False w0 cos=0.9883 z +0.71->+0.38 | w1 cos=0.9602 z +0.46->+0.66 pred cached True shipped True label True
+d06c3e7f2d19: same_text=False w0 cos=1.0000 z +0.06->+0.06 | w1 cos=0.9908 z -0.25->-0.21 pred cached True shipped True label True
+8cfb5ed34810: same_text=False w0 cos=0.9967 z +0.48->+0.36 | w1 cos=0.9962 z +0.55->+0.58 pred cached True shipped True label True
+a59a836b9807: same_text=False w0 cos=0.9972 z +0.84->+0.84 | w1 cos=0.9882 z +0.88->+0.71 pred cached True shipped True label True
+f3d7b78d243a: same_text=False w0 cos=0.9925 z +0.40->+0.50 | w1 cos=0.9842 z +0.81->+0.60 pred cached True shipped True label True
+f862f0368b2a: same_text=False w0 cos=0.9972 z +1.34->+1.27 | w1 cos=0.9918 z +1.14->+0.94 pred cached True shipped True label True
+26a263ad8113: same_text=False w0 cos=0.9868 z +0.43->+0.30 | w1 cos=0.9942 z +0.34->+0.33 pred cached True shipped True label True
+0412b80ad1a4: same_text=False w0 cos=0.9965 z +0.96->+0.83 | w1 cos=0.9910 z +1.12->+0.96 pred cached True shipped True label True
+7443669f7e90: same_text=False w0 cos=0.9952 z -1.66->-1.47 | w1 cos=0.9681 z -1.92->-1.52 pred cached False shipped False label False
+f02e2f662264: same_text=False w0 cos=0.9976 z -1.51->-1.44 | w1 cos=0.9754 z -1.31->-0.41 pred cached False shipped False label False
+7ee9d4437899: same_text=False w0 cos=0.9901 z -0.60->-0.36 | w1 cos=0.9914 z -0.54->-0.22 pred cached False shipped True label False
+45c534741418: same_text=False w0 cos=0.9934 z -1.45->-1.07 | w1 cos=0.9848 z -1.29->-1.36 pred cached False shipped False label False
+prediction agreement with cached features: 0.917
+[seg-probe    17.5s] Skywork/Skywork-OR1-Math-7B: 16 problems, layer 14/28
+[seg-probe   312.8s] Skywork/Skywork-OR1-Math-7B: batch 1/1 in 295s
+[seg-probe   313.3s] Skywork/Skywork-OR1-Math-7B: 12/16 predicted robust
+predict_robustness: 313s for 16 problems
+1c2bec482bb1: same_text=False w0 cos=0.9948 z +0.67->+0.33 | w1 cos=0.9954 z +0.43->+0.41 pred cached True shipped True label True
+cba4eb5fe5dc: same_text=False w0 cos=0.9966 z +0.09->+0.20 | w1 cos=0.9633 z -0.22->-0.05 pred cached True shipped True label True
+7ee9d4437899: same_text=False w0 cos=0.9924 z +0.22->+0.17 | w1 cos=0.9894 z -0.75->-0.71 pred cached True shipped True label False
+26a263ad8113: same_text=False w0 cos=0.9961 z +0.90->+0.80 | w1 cos=0.9923 z +0.73->+0.75 pred cached True shipped True label True
+335cfaaf1b6e: same_text=False w0 cos=0.9928 z -1.35->-0.65 | w1 cos=0.9780 z -1.16->-0.67 pred cached False shipped False label False
+f862f0368b2a: same_text=False w0 cos=0.9911 z -0.26->-0.49 | w1 cos=0.9902 z +0.57->+0.51 pred cached True shipped True label True
+0412b80ad1a4: same_text=False w0 cos=0.9989 z +1.08->+0.87 | w1 cos=0.9945 z +0.60->+0.51 pred cached True shipped True label True
+7443669f7e90: same_text=False w0 cos=0.9918 z -0.38->-0.46 | w1 cos=0.9554 z -1.67->-0.80 pred cached False shipped False label False
+f7b4a98af9dd: same_text=False w0 cos=0.9869 z +0.14->-0.82 | w1 cos=0.9528 z +0.35->-0.65 pred cached True shipped False label True
+a59a836b9807: same_text=False w0 cos=0.9931 z +0.31->-0.05 | w1 cos=0.9733 z -0.32->-1.26 pred cached True shipped False label True
+d8be640af827: same_text=False w0 cos=0.9837 z +0.13->-0.21 | w1 cos=0.9828 z +0.47->+0.07 pred cached True shipped True label True
+d06c3e7f2d19: same_text=False w0 cos=0.9974 z +0.09->+0.17 | w1 cos=0.9895 z -0.15->-0.01 pred cached True shipped True label True
+d03cff1d2f5f: same_text=False w0 cos=0.9978 z -0.66->-0.65 | w1 cos=0.9950 z +0.06->-0.17 pred cached True shipped True label False
+16d57ecb1281: same_text=False w0 cos=0.9896 z +0.64->+1.22 | w1 cos=0.9801 z +1.13->+0.80 pred cached True shipped True label True
+f785f38899d1: same_text=False w0 cos=0.9961 z +1.15->+1.13 | w1 cos=0.9805 z +0.71->+1.18 pred cached True shipped True label True
+2347acb5eb3b: same_text=False w0 cos=0.9968 z +0.49->+0.26 | w1 cos=0.9904 z +0.61->+0.15 pred cached True shipped True label False
+prediction agreement with cached features: 0.875

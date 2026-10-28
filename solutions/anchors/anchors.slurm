@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
 #SBATCH --time=12:00:00
-#SBATCH --output=analysis/anchors/work/logs/slurm_%j.txt
+#SBATCH --output=slurm_out/anchors_%j.txt
 set -eo pipefail
 scancel --name="$SLURM_JOB_NAME" --user="$USER" --state=PENDING || true
 cd "$SLURM_SUBMIT_DIR"
-bash analysis/anchors/run.sh
+bash solutions/anchors/run.sh

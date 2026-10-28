@@ -13,14 +13,14 @@
 #   4. Build dist/solution-diffmean-probe.zip and the -small variant.
 #
 # gpt-oss-120b is not extracted here (it needs both GPUs and CPU offload), so it
-# is scored by its prior. Log: probe_<jobid>.out
+# is scored by its prior. Log: slurm_out/probe_<jobid>.txt
 #SBATCH --job-name=probe
 #SBATCH --partition=gpu-a100
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=8:00:00
-#SBATCH --output=probe_%j.out
+#SBATCH --output=slurm_out/probe_%j.txt
 set -eo pipefail
 
 PYTHON="${PYTHON:-/data/gpfs/projects/punim0478/bansaab/venvs/pyine/bin/python}"

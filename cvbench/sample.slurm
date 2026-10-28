@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=4:00:00
-#SBATCH --output=data/cvbench/logs/sample_%j.txt
+#SBATCH --output=slurm_out/sample_%j.txt
 set -eo pipefail
 scancel --name="$SLURM_JOB_NAME" --user="$USER" --state=PENDING || true
 cd "$SLURM_SUBMIT_DIR"

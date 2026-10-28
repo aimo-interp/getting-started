@@ -23,17 +23,35 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   last-prompt-token hidden state at every layer (same template as ``acts``) and the
   answer entropy over its saved samples (math: semantic entropy = entropy of the
   final answer; no answer counts as one class) -> ``sep/<model>.npz``.
+* ``sep2``: the semantic-entropy probe data in the paper's setup (Kossen et al., 2024).
+  Needs ``sep2/samples`` (10 samples per prompt at T=1, top-p 0.9, top-k 50) and
+  ``sep2/greedy`` (one greedy response per prompt), both from ``datagen/sample.py
+  --no-suffix`` (``cvbench/sep2.slurm``). Per prompt, one pass over prompt + greedy
+  response saves the hidden state at the token before generation (TBG) and the last
+  response token (SLT) at every layer, plus the sampled answers -> ``sep2/<model>.npz``;
+  the cvbench cases' SLT from their cached greedy responses -> ``sep2/<model>__cases.npz``.
+* ``lens``: the length probe's training data. For every original problem the model was sampled on
+  (``len/samples``, from ``cvbench/lens.slurm``; else ``sep2/samples``), the unpadded last-prompt hidden
+  state at every layer and the mean log length of its sampled responses -> ``len/<model>.npz``.
+* ``introspect``: zero-shot self-prediction (Binder et al., 2024, "Looking Inward"): hypothetical questions
+  about the model's own behaviour on the problem, answered with no chain of thought (the thinking block is
+  closed), read as the Yes-vs-No log-odds of the next token -> ``introspect/<model>.jsonl``.
 * ``sample``: the forced-answer perturbation probe (X + 4 perturbations,
   ``--n`` traces each, ``--budget`` thinking tokens, forced answers and
   answer log-probs).
 
     uv run cvbench/generate.py --stages greedy acts
+    uv run cvbench/generate.py --cases cases_oss.jsonl --stages greedy acts segs pool   # gpt-oss-120b by effort
+
+A model id may carry a reasoning effort (``openai/gpt-oss-120b:medium``): the base model is
+loaded once and every stage formats prompts with that effort.
     uv run cvbench/generate.py --stages sample --n 4 --budget 2048
 """
 
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 import sys
@@ -120,9 +138,14 @@ def run_acts(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
         last_prompt = torch.stack([h[0, p - 1] for h in hs]).float().cpu().numpy()
         if response_ids:
             resp_mean = torch.stack([h[0, p:].float().mean(0) for h in hs]).cpu().numpy()
-            logp = torch.log_softmax(outputs.logits[0, p - 1:-1].float(), dim=-1)
-            entropy = -(logp.exp() * logp).nan_to_num().sum(-1).cpu().numpy()
-            selected = logp.gather(-1, ids[0, p:].unsqueeze(-1)).squeeze(-1).cpu().numpy()
+            # In chunks of positions: a float log-softmax over gpt-oss's 201k vocabulary is ~5 GB per 6k tokens.
+            ent, sel = [], []
+            for a in range(p - 1, ids.shape[1] - 1, 1024):
+                logp = torch.log_softmax(outputs.logits[0, a:min(a + 1024, ids.shape[1] - 1)].float(), dim=-1)
+                ent.append(-(logp.exp() * logp).nan_to_num().sum(-1))
+                sel.append(logp.gather(-1, ids[0, a + 1:a + 1 + len(logp)].unsqueeze(-1)).squeeze(-1))
+                del logp
+            entropy, selected = torch.cat(ent).cpu().numpy(), torch.cat(sel).cpu().numpy()
         else:
             resp_mean = np.zeros_like(last_prompt)
             entropy = selected = np.zeros(0, dtype=np.float32)
@@ -165,6 +188,62 @@ def run_segs(model, tokenizer, model_id: str, todo: dict[str, str], segments: in
         print(f"  {k}/{len(groups)} {g}: {n} resp tokens", flush=True)
 
 
+def run_lens(model, tokenizer, model_id: str) -> None:
+    out = DATA / "len" / f"{safe(model_id)}.npz"
+    paths = [DATA / d / "samples" / f"{safe(model_id)}__default.jsonl" for d in ("len", "sep2")]
+    path = next((p for p in paths if p.is_file()), None)
+    if out.is_file() or path is None:
+        print(f"[lens] {model_id}: {'done' if out.is_file() else 'no samples'}", flush=True)
+        return
+    problems = {r["problem_id"]: r["problem"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    rows = [r for r in read_jsonl(path) if r["type"] == "original" and r["problem_id"] in problems]
+    print(f"[lens] {model_id}: {len(rows)} originals from {path.parent.parent.name}", flush=True)
+    # one prompt at a time: unpadded, like the cases' acts last_prompt the probe is applied to
+    h = np.stack([hidden_last(model, tokenizer, [problems[r["problem_id"]]])[0].astype(np.float16) for r in rows])
+    np.savez(out, h=h, problem=np.array([problems[r["problem_id"]] for r in rows]),
+             log_len=np.array([np.log1p(np.array(r["n_tokens"], float)).mean() for r in rows]))
+    print(f"[lens] {model_id}: wrote {out.name}", flush=True)
+
+
+INTROSPECT = {
+    "robust": "Suppose you were asked to solve the following problem, and separately a slightly reworded version "
+              "of it (renamed variables, a typo, an irrelevant extra sentence, or a paraphrase). Would your final "
+              "answers to the two versions be the same?",
+    "correct": "Suppose you were asked to solve the following problem. Would your final answer be correct?",
+    "long": "Suppose you were asked to solve the following problem. Would your solution take more than 4,000 tokens?",
+}
+
+
+def no_think_prefix(prompt: str, tokenizer) -> str:
+    """Close the thinking block so the next token is the answer itself (no chain of thought)."""
+    if prompt.rstrip().endswith("<think>"):
+        return prompt.rstrip() + "\n\n</think>\n\n"
+    return prompt + "<think>\n\n</think>\n\n" if "<think>" in tokenizer.get_vocab() else prompt
+
+
+@torch.no_grad()
+def run_introspect(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
+    out = DATA / "introspect" / f"{safe(model_id)}.jsonl"
+    done = {r["group"] for r in read_jsonl(out)}
+    groups = [g for g in todo if g not in done]
+    print(f"[introspect] {model_id}: {len(groups)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    vocab = tokenizer.get_vocab()
+    ids = {w: [vocab[t] for t in {w, "Ġ" + w, "▁" + w} if t in vocab] for w in ("Yes", "No")}
+    for g in groups:
+        row = {"group": g, "model_id": model_id}
+        for name, question in INTROSPECT.items():
+            text = f"{question} Respond with only Yes or No.\n\nProblem:\n{todo[g]}"
+            prompt = no_think_prefix(format_problem(tokenizer, text), tokenizer)
+            enc = tokenizer(prompt, add_special_tokens=False, return_tensors="pt").to(device)
+            logp = torch.log_softmax(model(**enc, logits_to_keep=1).logits[0, -1].float(), -1)
+            yes, no = (torch.logsumexp(logp[ids[w]], 0).item() for w in ("Yes", "No"))
+            row[name] = yes - no
+            row[name + "_mass"] = float(np.exp(yes) + np.exp(no))  # how much of the next token is Yes/No at all
+        append_jsonl(out, [row])
+    print(f"[introspect] {model_id}: done", flush=True)
+
+
 def answer_entropy(answers: list) -> float:
     counts = np.unique(np.array(["NA" if a is None else str(a) for a in answers]), return_counts=True)[1]
     q = counts / counts.sum()
@@ -193,6 +272,59 @@ def run_sep(model, tokenizer, model_id: str, batch: int = 1) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out, h=np.concatenate(hs).astype(np.float16), entropy=np.array([e for *_, e in rows]),
                         problem=np.array([p for p, *_ in rows]), type=np.array([k for _, k, _, _ in rows]))
+
+
+@torch.no_grad()
+def tbg_slt(model, tokenizer, text: str, response: str) -> tuple[np.ndarray, np.ndarray, int]:
+    """One pass over prompt + response: hidden states at the last prompt token (TBG) and the last
+    response token (SLT) at every layer, [L+1, d] each, and the response length."""
+    device = model.get_input_embeddings().weight.device
+    prompt_ids = tokenizer(format_problem(tokenizer, text), add_special_tokens=False, truncation=True,
+                           max_length=2048)["input_ids"]
+    response_ids = tokenizer(response, add_special_tokens=False)["input_ids"][:4096]
+    hs = model(input_ids=torch.tensor([prompt_ids + response_ids], device=device), output_hidden_states=True,
+               logits_to_keep=1).hidden_states
+    p = len(prompt_ids)
+    tbg = torch.stack([h[0, p - 1] for h in hs]).float().cpu().numpy()
+    slt = torch.stack([h[0, -1] for h in hs]).float().cpu().numpy()
+    del hs
+    torch.cuda.empty_cache()
+    return tbg, slt, len(response_ids)
+
+
+def run_sep2(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
+    out = DATA / "sep2" / f"{safe(model_id)}.npz"
+    samples = DATA / "sep2" / "samples" / f"{safe(model_id)}__default.jsonl"
+    greedy_path = DATA / "sep2" / "greedy" / f"{safe(model_id)}__default.traces.jsonl"
+    if out.is_file() or not samples.is_file() or not greedy_path.is_file():
+        print(f"[sep2] {model_id}: {'done' if out.is_file() else 'no sep2 samples or greedy'}", flush=True)
+        return
+    problems = {r["problem_id"]: r["problem"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    variants = {(r["problem_id"], r["type"], int(r["variant"])): r["text"]
+                for r in read_jsonl(ROOT / "data" / "labelgen" / "variants.jsonl")}
+    greedy = {(r["problem_id"], r["type"], int(r["variant"])): r["texts"][0] for r in read_jsonl(greedy_path)}
+    rows = []
+    for r in read_jsonl(samples):
+        key = (r["problem_id"], r["type"], int(r["variant"]))
+        text = problems.get(r["problem_id"]) if r["type"] == "original" else variants.get(key)
+        if text and key in greedy:
+            rows.append((problems[r["problem_id"]], r["type"], text, greedy[key], r["answers"]))
+    print(f"[sep2] {model_id}: {len(rows)} prompts", flush=True)
+    tbg, slt, n_resp = [], [], []
+    for k, (_, _, text, response, _) in enumerate(rows, 1):
+        t, s, n = tbg_slt(model, tokenizer, text, response)
+        tbg.append(t.astype(np.float16)), slt.append(s.astype(np.float16)), n_resp.append(n)
+        if k % 100 == 0:
+            print(f"  {k}/{len(rows)}", flush=True)
+    # SLT of the cvbench cases (their TBG is acts' last_prompt), from the cached greedy responses.
+    cached = {r["group"]: r.get("generated_text", "") for r in read_jsonl(DATA / "greedy" / f"{safe(model_id)}.jsonl")}
+    groups = list(todo)
+    case_slt = np.stack([tbg_slt(model, tokenizer, todo[g], cached.get(g, ""))[1].astype(np.float16) for g in groups])
+    np.savez(DATA / "sep2" / f"{safe(model_id)}__cases.npz", group=np.array(groups), h_slt=case_slt)
+    np.savez(out, h_tbg=np.stack(tbg), h_slt=np.stack(slt), n_resp=np.array(n_resp),
+             answers=np.array([json.dumps(a) for *_, a in rows]), problem=np.array([p for p, *_ in rows]),
+             type=np.array([k for _, k, *_ in rows]))
+    print(f"[sep2] {model_id}: wrote {out.name} and {len(groups)} case SLTs", flush=True)
 
 
 @torch.no_grad()
@@ -247,34 +379,49 @@ def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, bu
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep"])
-    parser.add_argument("--models", nargs="+", default=MODELS)
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect"])
+    parser.add_argument("--models", nargs="+", default=None, help="Default: every model in the case file.")
+    parser.add_argument("--cases", default="cases.jsonl", help="Case file under data/cvbench.")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--budget", type=int, default=2048)
     parser.add_argument("--segments", type=int, default=10)
     args = parser.parse_args()
 
-    cases = read_jsonl(DATA / "cases.jsonl")
-    for model_id in args.models:
-        todo = {c["group"]: c["problem"] for c in cases if c["model_id"] == model_id}
-        if not todo:
+    cases = read_jsonl(DATA / args.cases)
+    models = args.models or list(dict.fromkeys(c["model_id"] for c in cases))
+    for base in dict.fromkeys(m.partition(":")[0] for m in models):
+        todos = {m: {c["group"]: c["problem"] for c in cases if c["model_id"] == m}
+                 for m in models if m.partition(":")[0] == base}
+        if not any(todos.values()):
             continue
-        model, tokenizer = load_model_and_tokenizer(model_id, local_files_only=True)
+        model, tokenizer = load_model_and_tokenizer(base, local_files_only=True)
+        print(f"[load] {base}: devices {sorted(set(map(str, getattr(model, 'hf_device_map', {}).values())))}", flush=True)
+        template = tokenizer.apply_chat_template
         try:
-            for stage in args.stages:
-                if stage == "greedy":
-                    run_greedy(model, tokenizer, model_id, todo, args.batch_size)
-                elif stage == "acts":
-                    run_acts(model, tokenizer, model_id, todo)
-                elif stage == "pool":
-                    run_pool(model, tokenizer, model_id, todo)
-                elif stage == "sep":
-                    run_sep(model, tokenizer, model_id)
-                elif stage == "segs":
-                    run_segs(model, tokenizer, model_id, todo, args.segments)
-                else:
-                    run_sample(model, tokenizer, model_id, todo, args.n, args.budget)
+            for model_id, todo in todos.items():
+                effort = model_id.partition(":")[2]
+                # gpt-oss reads the effort from its chat template, which every stage formats through.
+                tokenizer.apply_chat_template = functools.partial(template, reasoning_effort=effort) if effort else template
+                for stage in args.stages:
+                    if stage == "greedy":
+                        run_greedy(model, tokenizer, model_id, todo, args.batch_size)
+                    elif stage == "acts":
+                        run_acts(model, tokenizer, model_id, todo)
+                    elif stage == "pool":
+                        run_pool(model, tokenizer, model_id, todo)
+                    elif stage == "sep":
+                        run_sep(model, tokenizer, model_id)
+                    elif stage == "sep2":
+                        run_sep2(model, tokenizer, model_id, todo)
+                    elif stage == "introspect":
+                        run_introspect(model, tokenizer, model_id, todo)
+                    elif stage == "lens":
+                        run_lens(model, tokenizer, model_id)
+                    elif stage == "segs":
+                        run_segs(model, tokenizer, model_id, todo, args.segments)
+                    else:
+                        run_sample(model, tokenizer, model_id, todo, args.n, args.budget)
         finally:
             del model, tokenizer
             release_model()

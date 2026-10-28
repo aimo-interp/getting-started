@@ -2,12 +2,12 @@
 # Full anchor-analysis pipeline on Qwen3.5-4B. Every stage resumes, so rerun the
 # same command after an interruption. Run from anywhere on a GPU node:
 #
-#   bash analysis/anchors/run.sh                 # everything
-#   STAGES="whitebox" bash analysis/anchors/run.sh
-#   N=10 MAX_POINTS=40 BUDGET=16384 bash analysis/anchors/run.sh
-#   MODEL=Skywork/Skywork-OR1-Math-7B bash analysis/anchors/run.sh   # other cvbench models
+#   bash solutions/anchors/run.sh                 # everything
+#   STAGES="whitebox" bash solutions/anchors/run.sh
+#   N=10 MAX_POINTS=40 BUDGET=16384 bash solutions/anchors/run.sh
+#   MODEL=Skywork/Skywork-OR1-Math-7B bash solutions/anchors/run.sh   # other cvbench models
 #
-# Outputs: analysis/anchors/work/ for Qwen3.5-4B, analysis/anchors/work/<model>/ otherwise
+# Outputs: data/anchors/ for Qwen3.5-4B, data/anchors/<model>/ otherwise
 # (summary.json, wb_*.json, logs/).
 set -eo pipefail
 cd "$(dirname "$0")/../.."
@@ -21,26 +21,26 @@ MAX_POINTS="${MAX_POINTS:-40}"  # prefix points per curve
 BUDGET="${BUDGET:-16384}"       # completion tokens, counted from <think>
 MODEL="${MODEL:-Qwen/Qwen3.5-4B}"
 if [[ "$MODEL" != "Qwen/Qwen3.5-4B" ]]; then
-  export ANCHORS_WORK="$PWD/analysis/anchors/work/${MODEL//\//_}"
+  export ANCHORS_WORK="$PWD/data/anchors/${MODEL//\//_}"
   WB_ARGS="--stages probe lens steer ${WB_ARGS}"  # attn reads Qwen3.5's gated attention only
 fi
-LOGS="${ANCHORS_WORK:-analysis/anchors/work}/logs"
+LOGS="${ANCHORS_WORK:-data/anchors}/logs"
 mkdir -p "$LOGS"
 
 has() { [[ " $STAGES " == *" $1 "* ]]; }
 
 if has prepare; then
-  uv run analysis/anchors/prepare.py --model "$MODEL" 2>&1 | tee "$LOGS/prepare.txt"
+  uv run solutions/anchors/prepare.py --model "$MODEL" 2>&1 | tee "$LOGS/prepare.txt"
 fi
 if has screen; then
   # PICK="--spurious G --robust G --probe-fail G" overrides the automatic choice
-  $VLLM_PY analysis/anchors/resample.py --model "$MODEL" --stages screen select --screen-n "$SCREEN_N" --budget "$BUDGET" $PICK \
+  $VLLM_PY solutions/anchors/resample.py --model "$MODEL" --stages screen select --screen-n "$SCREEN_N" --budget "$BUDGET" $PICK \
     2>&1 | tee "$LOGS/screen.txt"
 fi
 if has curves; then
-  $VLLM_PY analysis/anchors/resample.py --model "$MODEL" --stages anchors transplant summary --n "$N" --max-points "$MAX_POINTS" \
+  $VLLM_PY solutions/anchors/resample.py --model "$MODEL" --stages anchors transplant summary --n "$N" --max-points "$MAX_POINTS" \
     --budget "$BUDGET" 2>&1 | tee "$LOGS/curves.txt"
 fi
 if has whitebox; then
-  uv run analysis/anchors/whitebox.py --model "$MODEL" --n "$N" --budget "$BUDGET" ${WB_ARGS} 2>&1 | tee "$LOGS/whitebox.txt"
+  uv run solutions/anchors/whitebox.py --model "$MODEL" --n "$N" --budget "$BUDGET" ${WB_ARGS} 2>&1 | tee "$LOGS/whitebox.txt"
 fi

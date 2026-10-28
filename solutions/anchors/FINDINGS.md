@@ -34,21 +34,21 @@ Rows are in `cvbench/results.csv` (method `seg_probe`); loop log in
 
 ## 2. Thought-anchor diagnostics (running as batch jobs)
 
-`bash analysis/anchors/run.sh` (screen -> select -> anchor/transplant curves ->
+`bash solutions/anchors/run.sh` (screen -> select -> anchor/transplant curves ->
 whitebox probe/lens/attn/steer) was smoke-tested end to end at a 2k budget and
 submitted at full settings (N=10, 40 points, 16k budget):
 
 | Model | where | work dir |
 |---|---|---|
-| Qwen/Qwen3.5-4B | interactive H100, then job `anchors` on gpu-l40s (delayed start, resumes) | `analysis/anchors/work/` |
-| Skywork/Skywork-OR1-Math-7B | `anchors_sky`, feit-gpu-a100 | `analysis/anchors/work/Skywork_Skywork-OR1-Math-7B/` |
-| allenai/Olmo-3-7B-Think | `anchors_olmo`, gpu-a100 | `analysis/anchors/work/allenai_Olmo-3-7B-Think/` |
-| deepseek-ai/DeepSeek-R1-0528-Qwen3-8B | `anchors_ds`, deeplearn | `analysis/anchors/work/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B/` |
+| Qwen/Qwen3.5-4B | interactive H100, then job `anchors` on gpu-l40s (delayed start, resumes) | `data/anchors/` |
+| Skywork/Skywork-OR1-Math-7B | `anchors_sky`, feit-gpu-a100 | `data/anchors/Skywork_Skywork-OR1-Math-7B/` |
+| allenai/Olmo-3-7B-Think | `anchors_olmo`, gpu-a100 | `data/anchors/allenai_Olmo-3-7B-Think/` |
+| deepseek-ai/DeepSeek-R1-0528-Qwen3-8B | `anchors_ds`, deeplearn | `data/anchors/deepseek-ai_DeepSeek-R1-0528-Qwen3-8B/` |
 
 One pending job per partition (do not fan each model out to all four partitions).
-Logs: `analysis/anchors/work/logs/slurm_<jobid>.txt` and `<work dir>/logs/`.
+Logs: `slurm_out/anchors_<jobid>.txt` (earlier jobs: `data/anchors/logs/slurm_<jobid>.txt`) and `<work dir>/logs/`.
 Every stage resumes; resubmit with the same `MODEL=... JOB_NAME=... TIME=24:00:00
-bash analysis/anchors/submit.sh` after a timeout. The attention stage
+bash solutions/anchors/submit.sh` after a timeout. The attention stage
 (receiver heads) supports Qwen3.5 only and is skipped for the other models.
 
 What to read when they finish: `wb_probe*.json` (per-sentence probe projection
@@ -58,7 +58,7 @@ sentence, and is it flat in the wrap-up? If receiver heads (Qwen) point at the
 same sentences, a receiver-attention-weighted pooling site is the next cvbench
 method to try.
 
-## 3. gpt-oss-120b fixed-trace hidden shift (analysis/thought_anchors/hidden_shift.py)
+## 3. gpt-oss-120b fixed-trace hidden shift (solutions/anchors/thought_anchors/hidden_shift.py)
 
 On the two hand-labelled cases, teacher-forcing the original trace under the
 distractor prompt shifts the robust case ~3x more than the fragile one (KL over

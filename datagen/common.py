@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import shutil
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -129,3 +131,38 @@ def label_for(max_drop: float) -> bool | None:
     if max_drop >= NOT_ROBUST_MIN_DROP:
         return False
     return None
+
+
+def tokenizer_path(model_id: str) -> str:
+    """Where to load ``model_id``'s tokenizer from (pass to vLLM ``tokenizer=`` or ``AutoTokenizer``).
+
+    transformers 5 loads a checkpoint whose ``tokenizer_config.json`` names
+    ``LlamaTokenizerFast`` over a byte-level BPE ``tokenizer.json``
+    (DeepSeek-R1-0528-Qwen3-8B) as a Llama tokenizer that mis-encodes text and
+    decodes ``Ġ``/``Ċ`` literally. For such checkpoints this returns a copy under
+    ``data/tokenizers/`` that names ``PreTrainedTokenizerFast``; otherwise ``model_id``.
+    """
+    if Path(model_id).is_dir():
+        snap = Path(model_id)
+    else:
+        hub = Path(os.environ.get("HF_HUB_CACHE") or Path(os.environ.get("HF_HOME", Path.home() / ".cache/huggingface")) / "hub")
+        snaps = sorted((hub / f"models--{model_id.replace('/', '--')}" / "snapshots").glob("*"))
+        if not snaps:
+            return model_id
+        snap = snaps[-1]
+    cfg_path = snap / "tokenizer_config.json"
+    if not cfg_path.exists() or not (snap / "tokenizer.json").exists():
+        return model_id
+    cfg = json.loads(cfg_path.read_text())
+    if cfg.get("tokenizer_class") != "LlamaTokenizerFast":
+        return model_id
+    if '"ByteLevel"' not in (snap / "tokenizer.json").read_text(encoding="utf-8"):
+        return model_id
+    out = ROOT / "data" / "tokenizers" / model_id.replace("/", "_")
+    if not (out / "tokenizer_config.json").exists():
+        out.mkdir(parents=True, exist_ok=True)
+        for name in ("tokenizer.json", "special_tokens_map.json", "chat_template.jinja", "generation_config.json"):
+            if (snap / name).exists():
+                shutil.copyfile(snap / name, out / name)
+        (out / "tokenizer_config.json").write_text(json.dumps({**cfg, "tokenizer_class": "PreTrainedTokenizerFast"}, indent=1))
+    return str(out)

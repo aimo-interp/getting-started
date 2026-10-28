@@ -13,7 +13,7 @@ For every labelled case of ``--model`` in ``data/cvbench/cases.jsonl``:
   the 0.85 configuration) scored leave-one-problem-out, so each case gets an
   honest score and prediction; the full-data direction is saved for whitebox.py.
 
-    uv run analysis/anchors/prepare.py
+    uv run solutions/anchors/prepare.py
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from common import extract_answer, normalize, parse_integer, read_jsonl  # noqa:
 from perturb_probe.perturbations import make_perturbations  # noqa: E402
 
 HUB = Path("/data/gpfs/projects/punim0478/bansaab/hub")
-WORK = Path(os.environ.get("ANCHORS_WORK", HERE / "work"))
+WORK = Path(os.environ.get("ANCHORS_WORK", ROOT / "data" / "anchors"))
 
 
 def safe(model_id: str) -> str:
@@ -127,7 +127,8 @@ def main() -> None:
     print(f"{len(out)} cases for {args.model}; probe layer {probe['layer']}, "
           f"LOO accuracy {np.mean([o['probe_correct'] for o in out]):.3f}")
     for o in out:
-        print(f"  {o['group']} robust={o['is_robust']!s:5} drop={o['max_drop']:+.2f} gold={o['gold']} "
+        drop = "  n/a" if o["max_drop"] is None else f"{o['max_drop']:+.2f}"  # val-sample rows have no max_drop
+        print(f"  {o['group']} robust={o['is_robust']!s:5} drop={drop} gold={o['gold']} "
               f"probe={o['probe_score']:+.3f} {'ok' if o['probe_correct'] else 'WRONG'} "
               f"variants={len(o['variants'])}")
 

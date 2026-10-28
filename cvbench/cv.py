@@ -45,8 +45,11 @@ def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.is_file() else []
 
 
-def load_cases() -> pd.DataFrame:
-    return pd.DataFrame(read_jsonl(DATA / "cases.jsonl")).set_index("case_id")
+CASE_FILES = ("cases.jsonl", "cases_oss.jsonl")  # small models; gpt-oss-120b by effort (model_id "...:<effort>")
+
+
+def load_cases(files=CASE_FILES) -> pd.DataFrame:
+    return pd.DataFrame([r for f in files for r in read_jsonl(DATA / f)]).set_index("case_id")
 
 
 def by_group(cases: pd.DataFrame, rows: list[dict]) -> pd.DataFrame:
@@ -138,6 +141,39 @@ def m_cot_text(cases, args):
     return feats, "greedy CoT, max_new_tokens=4096; hesitation/wait/verify rates, length, truncation, answer churn"
 
 
+def m_length(cases, args):
+    g = greedy_table(cases)
+    n = g["generation_num_tokens"].fillna(0).astype(float)
+    feats = pd.DataFrame({"log_tokens": np.log1p(n), "truncated": (n >= 4095).astype(float)}, index=cases.index)
+    return feats, "greedy response length: log tokens + hit the 4,096 cap"
+
+
+def m_sample_length(cases, args):
+    """Mean log length and cap rate of the 10 sep2 samples of the original problem (NaN -> median when absent)."""
+    norm = lambda t: re.sub(r"\s+", " ", t).strip().lower()
+    pids = {norm(r["problem"]): r["problem_id"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    stats = {}
+    for model_id in cases.model_id.unique():
+        path = DATA / "sep2" / "samples" / f"{safe(model_id)}__default.jsonl"
+        for r in read_jsonl(path) if path.is_file() else []:
+            if r["type"] == "original":
+                n = np.array(r["n_tokens"], float)
+                stats[(model_id, r["problem_id"])] = (np.log1p(n).mean(), (n >= 8192).mean())
+    rows = [stats.get((c.model_id, pids.get(norm(c.problem))), (np.nan, np.nan)) for c in cases.itertuples()]
+    feats = pd.DataFrame(rows, columns=["sample_log_tokens", "sample_capped"], index=cases.index)
+    return feats, f"sep2 samples of the original (10, 8,192 cap): mean log length + cap rate; {int(feats.iloc[:, 0].notna().sum())} cases covered"
+
+
+def m_introspect(cases, args):
+    rows = []
+    for model_id in cases.model_id.unique():
+        rows += read_jsonl(DATA / "introspect" / f"{safe(model_id)}.jsonl")
+    t = by_group(cases, rows)
+    feats = t[["robust", "correct", "long"]].astype(float)
+    return feats, ("zero-shot self-prediction (Looking Inward): Yes-vs-No log-odds, no CoT, for 'answer unchanged "
+                   "under rewording', 'answer correct', 'solution over 4k tokens'")
+
+
 def m_uncertainty_cot(cases, args):
     a, _ = m_uncertainty_cv(cases, args)
     b, _ = m_cot_text(cases, args)
@@ -213,9 +249,11 @@ def zscore_within_model(feats: pd.DataFrame, cases: pd.DataFrame) -> np.ndarray:
     return X.fillna(0.0).to_numpy()
 
 
-def evaluate(cases, predict_fold, repeats: int, seed: int = 0):
-    """predict_fold(train_idx, test_idx) -> (bool preds, scores) for test rows."""
+def evaluate(cases, predict_fold, repeats: int, seed: int = 0, score_mask=None):
+    """predict_fold(train_idx, test_idx) -> (bool preds, scores) for test rows. ``score_mask``: train on
+    every case but compute the metrics on these cases only (e.g. organizer labels)."""
     y = cases.is_robust.astype(bool).to_numpy()
+    keep = np.ones(len(y), dtype=bool) if score_mask is None else np.asarray(score_mask)
     groups = cases.group.to_numpy()
     accs, baccs, aucs, per_model = [], [], [], {m: [] for m in cases.model_id.unique()}
     for r in range(repeats):
@@ -224,11 +262,11 @@ def evaluate(cases, predict_fold, repeats: int, seed: int = 0):
         for tr, te in StratifiedGroupKFold(5, shuffle=True, random_state=seed + r).split(y, y, groups):
             p, s = predict_fold(tr, te)
             pred[te], score[te] = p, s
-        accs.append((pred == y).mean())
-        baccs.append(balanced_accuracy_score(y, pred))
-        aucs.append(roc_auc_score(y, score) if np.ptp(score) > 0 else 0.5)
+        accs.append((pred[keep] == y[keep]).mean())
+        baccs.append(balanced_accuracy_score(y[keep], pred[keep]))
+        aucs.append(roc_auc_score(y[keep], score[keep]) if np.ptp(score[keep]) > 0 else 0.5)
         for m in per_model:
-            mask = (cases.model_id == m).to_numpy()
+            mask = (cases.model_id == m).to_numpy() & keep
             per_model[m].append((pred[mask] == y[mask]).mean())
     return {"cv_score": float(np.mean(accs)), "cv_std": float(np.std(accs)), "balanced_acc": float(np.mean(baccs)),
             "auc": float(np.mean(aucs)),
@@ -265,6 +303,9 @@ METHODS = {
     "uncertainty_cv": ("blackbox", m_uncertainty_cv),
     "uncertainty_rf": ("blackbox", m_uncertainty_rf),
     "cot_text": ("blackbox", m_cot_text),
+    "length": ("blackbox", m_length),
+    "introspect": ("blackbox", m_introspect),
+    "sample_length": ("blackbox", m_sample_length),
     "uncertainty_cot": ("blackbox", m_uncertainty_cot),
     "entropy_trace": ("blackbox", m_entropy_trace),
     "resample": ("blackbox", m_resample),
@@ -312,14 +353,34 @@ def main() -> None:
     parser.add_argument("--seg-combine", action="store_true", help="seg_probe: use every window's score as a feature.")
     parser.add_argument("--sep-alpha", type=float, default=1000.0, help="sep_probe ridge penalty.")
     parser.add_argument("--sep-with-seg", action="store_true", help="sep_probe: add the seg_probe 0-5/5-9 scores.")
+    parser.add_argument("--sep-pos", default="tbg", choices=["tbg", "slt"], help="sep2_probe: token position.")
+    parser.add_argument("--sep-block", type=int, default=5, help="sep2_probe: adjacent layers concatenated.")
+    parser.add_argument("--sep-none", default="cluster", choices=["cluster", "drop"],
+                        help="sep2_probe: a sample with no answer is its own cluster, or left out.")
+    parser.add_argument("--saplma-target", default="robust", choices=["robust", "correct"], help="saplma: training target.")
+    parser.add_argument("--saplma-alpha", type=float, default=1e-2, help="saplma: MLP L2 penalty.")
+    parser.add_argument("--len-frac", type=float, default=0.7, help="len_probe: layer fraction.")
+    parser.add_argument("--len-alpha", type=float, default=1e4, help="len_probe: ridge penalty.")
+    parser.add_argument("--len-with-seg", action="store_true", help="len_probe: add the seg_probe 0-5/5-9 scores.")
+    parser.add_argument("--sep-answers", default="sampled", choices=["sampled", "forced"],
+                        help="sep2_probe: answers as sampled, or with truncated samples budget-forced (force_answers.py).")
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")
+    parser.add_argument("--cases", nargs="+", default=list(CASE_FILES), help="Case files under data/cvbench.")
+    parser.add_argument("--pool-efforts", action="store_true",
+                        help="seg_probe: one direction per base model, shared by its reasoning efforts.")
     parser.add_argument("--models", nargs="+", default=None, help="Restrict to these model ids (subset CV).")
+    parser.add_argument("--sources", nargs="+", default=None, help="Restrict to these label sources, e.g. train-main-v2.")
+    parser.add_argument("--score-sources", nargs="+", default=None,
+                        help="Train on every case but score only cases from these label sources.")
     parser.add_argument("--no-write", action="store_true")
     args = parser.parse_args()
 
-    cases = load_cases()
+    cases = load_cases(args.cases)
     if args.models:
         cases = cases[cases.model_id.isin(args.models)]
+    if args.sources:
+        cases = cases[cases.source.isin(args.sources)]
+    score_mask = cases.source.isin(args.score_sources).to_numpy() if args.score_sources else None
     if args.layer_report:
         import whitebox
         df = whitebox.layer_report(cases, sys.modules[__name__], DATA / "layer_report.csv")
@@ -332,18 +393,24 @@ def main() -> None:
         out = fn(cases, args)
         feats, hyper = out
         if name == "always_true":
-            res = evaluate(cases, lambda tr, te: (np.ones(len(te), bool), np.zeros(len(te))), 1)
+            res = evaluate(cases, lambda tr, te: (np.ones(len(te), bool), np.zeros(len(te))), 1, score_mask=score_mask)
         elif isinstance(feats, str) and feats == "shipped":
             pred, score = shipped_predictions(cases)
-            res = evaluate(cases, lambda tr, te: (pred[te], score[te]), 1)
+            res = evaluate(cases, lambda tr, te: (pred[te], score[te]), 1, score_mask=score_mask)
         elif callable(feats):  # method supplies its own fold predictor
-            res = evaluate(cases, feats, args.repeats)
+            res = evaluate(cases, feats, args.repeats, score_mask=score_mask)
         else:
             X = zscore_within_model(feats, cases)
-            res = evaluate(cases, logistic_predictor(X, y, args.C), args.repeats)
+            res = evaluate(cases, logistic_predictor(X, y, args.C), args.repeats, score_mask=score_mask)
             hyper += f"; logistic C={args.C}" if "logistic" not in hyper else ""
+        if list(args.cases) != list(CASE_FILES):
+            hyper += f"; cases={','.join(args.cases)}"
         if args.models:
             hyper += f"; SUBSET models={','.join(m.split('/')[-1] for m in args.models)}"
+        if args.sources:
+            hyper += f"; SUBSET sources={','.join(args.sources)}"
+        if args.score_sources:
+            hyper += f"; SCORED ON sources={','.join(args.score_sources)} ({int(score_mask.sum())} cases)"
         row = {"method": name, "type": kind, "hyperparams": hyper, "n_cases": len(cases), **res}
         rows.append(row)
         print(f"{name:24s} acc={res['cv_score']:.3f}±{res['cv_std']:.3f} bacc={res['balanced_acc']:.3f} "

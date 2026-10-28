@@ -58,7 +58,8 @@ def solutions() -> list[tuple[str, Path]]:
                 "use lowercase letters, digits, and hyphens"
             )
         if not (directory / "solution.py").is_file():
-            raise SystemExit(f"solution is missing solution.py: {directory}")
+            print(f"skipping {directory.name}: no solution.py (research-only method)")
+            continue
         found.append((directory.name, directory))
 
     if not found:

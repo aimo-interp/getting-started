@@ -31,12 +31,22 @@ Each case has, at every layer: ``last_prompt`` (last prompt token), ``resp_mean`
   applied to each case's X prompt; feature = -predicted entropy. Models without
   labelgen samples get the prior (0). ``--sep-with-seg`` adds the seg_probe 0-5/5-9
   scores. Hypothesis: problems the model is internally unsure about are less robust.
+* ``sep2_probe``: ``sep_probe`` in the paper's setup (``generate.py --stages sep2``):
+  10 samples per prompt at T=1; target = discrete semantic entropy (answer clusters;
+  ``--sep-none`` says whether a sample with no answer is a cluster or left out),
+  binarized at the split minimizing within-class squared error; probe = logistic
+  regression (default L2) on the hidden state at ``--sep-pos`` (TBG: token before
+  generation; SLT: last token of the greedy response) over ``--sep-block`` adjacent
+  layers, the block picked per model by held-out SE AUROC on the SEP data alone.
+  Feature = -probe logit on each case, z-scored within model.
 * ``perturb_direction_sup``: as above plus a supervised direction in shift
   space, diff-in-means of the shift vectors mean_k(h(dX_k) - h(X)) between
   robust and non-robust training problems.
 """
 
 from __future__ import annotations
+
+import json
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -351,6 +361,8 @@ def register(methods, cv):
         acts = load_acts(cases, cv)
         y = cases.is_robust.astype(bool).to_numpy()
         models = cases.model_id.to_numpy()
+        if getattr(args, "pool_efforts", False):
+            models = np.array([m.partition(":")[0] for m in models])
         groups = cases.group.to_numpy()
         windows = [tuple(map(int, w.split("-"))) for w in args.seg_windows] if args.seg_windows else SEG_WINDOWS
         sites = [f"seg_{a}_{b}" for a, b in windows]
@@ -365,11 +377,19 @@ def register(methods, cv):
             else:
                 cand = cands[0] if len(cands) == 1 else _inner_select(cands, make, y, groups, tr, args.C)
                 F = make(cand, tr)
+            if extra is not None:
+                F = np.concatenate([F, extra], 1)
             return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
 
+        extra = None
+        if args.with_bb:
+            extra = np.concatenate([cv.zscore_within_model(cv.METHODS[name][1](cases, args)[0], cases)
+                                    for name in args.with_bb], 1)
         sel = "combined: one score per window" if args.seg_combine else ("fixed" if len(cands) == 1 else "nested-CV")
-        return predict, (f"diff-in-means probe per model on a CoT window (10 segments); windows "
-                         f"{['%d-%d' % w for w in windows]}; layer frac in {list(fracs)} ({sel}); logistic C={args.C}")
+        return predict, (f"{'+'.join(['probe'] + args.with_bb)}: " if args.with_bb else "") + (
+                         f"diff-in-means probe per model on a CoT window (10 segments); windows "
+                         f"{['%d-%d' % w for w in windows]}; layer frac in {list(fracs)} ({sel}); logistic C={args.C}"
+                         f"{'; efforts pooled' if getattr(args, 'pool_efforts', False) else ''}")
 
     def sep_probe(cases, args):
         from sklearn.linear_model import Ridge
@@ -412,11 +432,301 @@ def register(methods, cv):
                          f"prompts minus test-fold problems; models with SEP data {[m.split('/')[-1] for m in sep]}; "
                          f"layer frac {frac}{'; + seg_probe 0-5/5-9' if args.sep_with_seg else ''}; logistic C={args.C}")
 
+    def sep2_probe(cases, args):
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        problems = cases.problem.to_numpy()
+        sep = {}
+        for m in np.unique(models):
+            d = load_sep2(cv, m, args.sep_none, args.sep_answers)
+            if d is None:
+                continue
+            if args.sep_pos == "tbg":
+                d["case_h"] = np.stack([acts[i]["last_prompt"] for i in np.where(models == m)[0]])
+            else:
+                z = np.load(cv.DATA / "sep2" / f"{cv.safe(m)}__cases.npz")
+                by_group = dict(zip(z["group"], z["h_slt"].astype(np.float32)))
+                d["case_h"] = np.stack([by_group[g] for g in cases.group.to_numpy()[models == m]])
+            d["layers"], d["layer_auc"] = sep2_select_layers(d, args.sep_pos, args.sep_block)
+            sep[m] = d
+            print(f"[sep2] {m.split('/')[-1]}: {len(d['se'])} prompts, {np.mean(d['se'] == 0):.0%} zero SE, "
+                  f"layers {d['layers'][0]}-{d['layers'][-1]} (held-out SE AUROC {d['layer_auc']:.3f})", flush=True)
+
+        def sep_feature(tr, te):
+            feat = np.zeros(len(acts))
+            held_out = set(problems[te])
+            for m, d in sep.items():
+                idx = np.where(models == m)[0]
+                keep = np.array([q not in held_out for q in d["problem"]])
+                X = sep2_features(d["h"][keep], d["layers"])
+                target = d["se"][keep] > sep2_threshold(d["se"][keep])
+                if target.all() or (~target).all():
+                    continue
+                clf = LogisticRegression(max_iter=1000).fit(X, target)
+                score = -clf.decision_function(sep2_features(d["case_h"], d["layers"]))  # high = low entropy
+                tr_m = np.isin(idx, tr)
+                feat[idx] = (score - score[tr_m].mean()) / (score[tr_m].std() + 1e-8)
+            return feat[:, None]
+
+        def predict(tr, te):
+            F = sep_feature(tr, te)
+            if args.sep_with_seg:
+                F = np.concatenate([F] + [diffmean_scores(acts, models, y, tr, None, w, 0.5) for w in ("seg_0_5", "seg_5_9")], 1)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        layers = {m.split('/')[-1]: f"{d['layers'][0]}-{d['layers'][-1]} (SE AUROC {d['layer_auc']:.2f})" for m, d in sep.items()}
+        return predict, (f"semantic-entropy probe, paper setup: logistic(L2, C=1) on {args.sep_pos.upper()} h, "
+                         f"{args.sep_block} adjacent layers -> SE above the SSE split, 10 samples/prompt ({args.sep_answers} answers), "
+                         f"no-answer {args.sep_none}; trained on sep2 prompts minus test-fold problems; layers {layers}"
+                         f"{'; + seg_probe 0-5/5-9' if args.sep_with_seg else ''}; logistic C={args.C}")
+
+    def len_probe(cases, args):
+        """Ridge from the last-prompt hidden state to the mean log length of the model's sampled responses,
+        trained on the sep2 prompts (originals + variants, 10 samples each, no labels). Each case is
+        predicted by a ridge fitted without its own problem, so train and test cases get the same kind of
+        out-of-sample score; the predicted length (short = robust) is the feature."""
+        from sklearn.linear_model import Ridge
+        from sklearn.preprocessing import StandardScaler
+
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        problems = np.array([_norm(t) for t in cases.problem])
+        feat = np.zeros(len(acts))
+        with_data = []
+        for m in np.unique(models):
+            d = load_len2(cv, m)
+            if d is None:
+                continue
+            with_data.append(m.split("/")[-1])
+            layer = layer_of(d["h"].shape[1], args.len_frac)
+            X_all = d["h"][:, layer].astype(np.float32)
+            idx = np.where(models == m)[0]
+            score = np.zeros(len(idx))
+            for q in np.unique(problems[idx]):
+                keep = d["problem"] != q
+                scaler = StandardScaler().fit(X_all[keep])
+                reg = Ridge(alpha=args.len_alpha).fit(scaler.transform(X_all[keep]), d["y"][keep])
+                rows = idx[problems[idx] == q]
+                H = np.stack([acts[i]["last_prompt"][layer] for i in rows])
+                score[np.isin(idx, rows)] = -reg.predict(scaler.transform(H))  # high = short responses = robust
+            feat[idx] = (score - score.mean()) / (score.std() + 1e-8)  # label-free, so all of the model's cases
+            print(f"[len2] {m.split('/')[-1]}: {len(d['y'])} prompts, layer {layer}, "
+                  f"{len(np.unique(problems[idx]))} leave-one-problem-out fits", flush=True)
+        data = with_data
+
+        def len_feature(tr, te):
+            return feat[:, None]
+
+        def predict(tr, te):
+            F = len_feature(tr, te)
+            if args.len_with_seg:
+                F = np.concatenate([F] + [diffmean_scores(acts, models, y, tr, None, w, 0.5) for w in ("seg_0_5", "seg_5_9")], 1)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        return predict, (f"length probe: ridge(alpha={args.len_alpha}) last-prompt h @ layer frac {args.len_frac} -> mean log "
+                         f"length of 10 sampled responses (8,192 cap), trained on sep2 prompts minus the case's own problem; "
+                         f"models with data {data}"
+                         f"{'; + seg_probe 0-5/5-9' if args.len_with_seg else ''}; logistic C={args.C}")
+
+    def saplma(cases, args):
+        """SAPLMA (Azaria & Mitchell, 2023): an MLP (256-128-64, ReLU) on one layer's hidden state.
+        target "robust": fitted per model on the training cases' robustness labels (site --site, default
+        resp_mean). target "correct": its own target, whether most of the model's sampled answers are
+        correct, fitted on the sep2 prompt states (no robustness labels) and applied to the cases'
+        last_prompt; each case scored by an MLP fitted without its problem's group (5 problem groups)."""
+        from sklearn.model_selection import GroupKFold
+        from sklearn.neural_network import MLPClassifier
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        acts = load_acts(cases, cv)
+        y = cases.is_robust.astype(bool).to_numpy()
+        models = cases.model_id.to_numpy()
+        frac = 0.5 if args.layer_frac is None else args.layer_frac
+        mlp = lambda: make_pipeline(StandardScaler(), MLPClassifier((256, 128, 64), alpha=args.saplma_alpha,
+                                                                    max_iter=300, random_state=0))
+
+        if args.saplma_target == "robust":
+            site = args.site or "resp_mean"
+
+            def predict(tr, te):
+                feat = np.zeros(len(acts))
+                for m in np.unique(models):
+                    idx = np.where(models == m)[0]
+                    tr_m = np.intersect1d(idx, tr)
+                    if len(set(y[tr_m])) < 2:
+                        continue
+                    layer = layer_of(acts[idx[0]][site].shape[0], frac)
+                    H = np.stack([acts[i][site][layer] for i in idx])
+                    clf = mlp().fit(H[np.isin(idx, tr_m)], y[tr_m])
+                    p = clf.predict_proba(H)[:, 1].clip(1e-4, 1 - 1e-4)
+                    feat[idx] = np.log(p / (1 - p))
+                F = feat[:, None]
+                return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+            return predict, f"SAPLMA MLP(256-128-64) per model on {site} @ layer frac {frac}, target robust; alpha={args.saplma_alpha}; logistic C={args.C}"
+
+        problems = np.array([_norm(t) for t in cases.problem])
+        feat = np.zeros(len(acts))
+        with_data = []
+        for m in np.unique(models):
+            d = load_correct2(cv, m)
+            if d is None:
+                continue
+            with_data.append(m.split("/")[-1])
+            layer = layer_of(d["h"].shape[1], frac)
+            X_all = d["h"][:, layer].astype(np.float32)
+            idx = np.where(models == m)[0]
+            case_q = np.unique(problems[idx])
+            H = np.stack([acts[i]["last_prompt"][layer] for i in idx])
+            for _, part in GroupKFold(5).split(case_q, groups=case_q):
+                held = set(case_q[part])
+                keep = np.array([q not in held for q in d["problem"]])
+                clf = mlp().fit(X_all[keep], d["y"][keep])
+                rows = np.isin(problems[idx], list(held))
+                p = clf.predict_proba(H[rows])[:, 1].clip(1e-4, 1 - 1e-4)
+                feat[idx[rows]] = np.log(p / (1 - p))
+            print(f"[saplma] {m.split('/')[-1]}: {len(d['y'])} prompts ({d['y'].mean():.0%} majority-correct), layer {layer}", flush=True)
+
+        def predict(tr, te):
+            F = feat[:, None]
+            if args.len_with_seg:
+                F = np.concatenate([F] + [diffmean_scores(acts, models, y, tr, None, w, 0.5) for w in ("seg_0_5", "seg_5_9")], 1)
+            return _predict(_fit_logistic(F[tr], y[tr], args.C), F[te], True)
+
+        return predict, (f"SAPLMA MLP(256-128-64) on last-prompt h @ layer frac {frac}, target: majority of 10 sampled answers "
+                         f"correct, fitted on sep2 prompts minus the case's problem group; models with data {with_data}; "
+                         f"alpha={args.saplma_alpha}{'; + seg_probe 0-5/5-9' if args.len_with_seg else ''}; logistic C={args.C}")
+
+    methods["saplma"] = ("whitebox", saplma)
+    methods["len_probe"] = ("whitebox", len_probe)
+    methods["sep2_probe"] = ("whitebox", sep2_probe)
     methods["act_probe"] = ("whitebox", act_probe)
     methods["seg_probe"] = ("whitebox", seg_probe)
     methods["sep_probe"] = ("whitebox", sep_probe)
     methods["perturb_direction"] = ("whitebox", perturb_direction)
     methods["perturb_direction_sup"] = ("whitebox", lambda c, a: perturb_direction(c, a, True))
+
+
+def semantic_entropy(answers: list, none: str = "cluster") -> float | None:
+    """Discrete semantic entropy: entropy of the fractions of samples per answer cluster. For integer
+    answers, bidirectional entailment reduces to equality. ``none``: a sample with no parsed answer
+    is one more cluster ("cluster") or is left out ("drop"; None if nothing is left)."""
+    if none == "drop":
+        answers = [a for a in answers if a is not None]
+        if not answers:
+            return None
+    counts = np.unique(np.array(["NA" if a is None else str(a) for a in answers]), return_counts=True)[1]
+    q = counts / counts.sum()
+    return float(-(q * np.log(q)).sum())
+
+
+def sep2_threshold(se: np.ndarray) -> float:
+    """The paper's binarization: the split that minimizes the within-class squared error."""
+    values = np.unique(se)
+    if len(values) < 2:
+        return float(values[0])
+    best, gamma = np.inf, values[0]
+    for lo, hi in zip(values[:-1], values[1:]):
+        t = (lo + hi) / 2
+        a, b = se[se <= t], se[se > t]
+        sse = ((a - a.mean()) ** 2).sum() + ((b - b.mean()) ** 2).sum()
+        if sse < best:
+            best, gamma = sse, t
+    return float(gamma)
+
+
+def _norm(text: str) -> str:
+    return " ".join(text.split()).lower()
+
+
+def load_len2(cv, model_id: str):
+    """Prompt states (every layer) with the mean log length of each prompt's sampled responses: the sep2
+    prompts (originals + variants; rows aligned with sep2/<model>.npz the way generate.py run_sep2 built
+    it, checked on the answers), else the originals of len/<model>.npz (generate.py --stages lens)."""
+    key = ("len2", model_id)
+    if key not in _CACHE:
+        path = cv.DATA / "sep2" / f"{cv.safe(model_id)}.npz"
+        samples = cv.DATA / "sep2" / "samples" / f"{cv.safe(model_id)}__default.jsonl"
+        greedy_path = cv.DATA / "sep2" / "greedy" / f"{cv.safe(model_id)}__default.traces.jsonl"
+        lens = cv.DATA / "len" / f"{cv.safe(model_id)}.npz"
+        if not (path.is_file() and samples.is_file() and greedy_path.is_file()):
+            if not lens.is_file():
+                return None
+            z = np.load(lens)
+            _CACHE[key] = dict(h=z["h"], problem=np.array([_norm(t) for t in z["problem"]]), y=z["log_len"])
+            return dict(_CACHE[key])
+        labelgen = cv.ROOT / "data" / "labelgen"
+        texts = {(r["problem_id"], "original", 0): r["problem"] for r in cv.read_jsonl(labelgen / "problems.jsonl")}
+        texts.update({(r["problem_id"], r["type"], int(r["variant"])): r["text"] for r in cv.read_jsonl(labelgen / "variants.jsonl")})
+        greedy = {(r["problem_id"], r["type"], int(r["variant"])) for r in cv.read_jsonl(greedy_path)}
+        rows = [r for r in cv.read_jsonl(samples)
+                if texts.get(k := (r["problem_id"], r["type"], int(r["variant"]))) and k in greedy]
+        z = np.load(path)
+        assert [json.loads(a) for a in z["answers"]] == [r["answers"] for r in rows], "sep2 row order changed"
+        _CACHE[key] = dict(h=z["h_tbg"], problem=np.array([_norm(t) for t in z["problem"]]),
+                           y=np.array([np.log1p(np.array(r["n_tokens"], float)).mean() for r in rows]),
+                           correct=np.array([np.mean(r["correct"]) for r in rows]))
+    return dict(_CACHE[key])
+
+
+def load_correct2(cv, model_id: str):
+    """sep2 prompt states with SAPLMA's target: whether most of the prompt's sampled answers are correct."""
+    d = load_len2(cv, model_id)
+    if d is None or "correct" not in d:
+        return None
+    return dict(h=d["h"], problem=d["problem"], y=d["correct"] >= 0.5)
+
+
+def load_sep2(cv, model_id: str, none: str, answers: str = "sampled"):
+    """``answers``: the sampled answers, or "forced" (truncated samples budget-forced, cvbench/force_answers.py)."""
+    key = ("sep2", model_id, none, answers)
+    if key not in _CACHE:
+        path = cv.DATA / "sep2" / f"{cv.safe(model_id)}.npz"
+        forced = cv.DATA / "sep2" / f"{cv.safe(model_id)}__forced.npz"
+        if not path.is_file() or (answers == "forced" and not forced.is_file()):
+            return None
+        z = np.load(path)
+        raw = np.load(forced)["answers"] if answers == "forced" else z["answers"]
+        se = [semantic_entropy(json.loads(a), none) for a in raw]
+        keep = np.array([s is not None for s in se])
+        _CACHE[key] = dict(se=np.array([s for s in se if s is not None]), problem=z["problem"][keep],
+                           h_tbg=z["h_tbg"][keep], h_slt=z["h_slt"][keep])
+    d = dict(_CACHE[key])
+    return d
+
+
+def sep2_features(H: np.ndarray, layers: list[int]) -> np.ndarray:
+    return np.concatenate([H[:, l].astype(np.float32) for l in layers], 1)
+
+
+def sep2_select_layers(d: dict, pos: str, block: int) -> tuple[list[int], float]:
+    """Per-layer probes, scored by held-out AUROC on the binarized SE (3-fold, grouped by problem, no
+    robustness labels); the block of ``block`` adjacent layers with the best mean AUROC is kept."""
+    d["h"] = d[f"h_{pos}"]
+    target = d["se"] > sep2_threshold(d["se"])
+    groups = d["problem"]
+    folds = list(StratifiedGroupKFold(3, shuffle=True, random_state=0).split(target, target, groups))
+    n_layers = d["h"].shape[1]
+    auc = np.full(n_layers, 0.5)
+    for layer in range(1, n_layers):  # layer 0 is the embedding
+        score = np.zeros(len(target))
+        X = d["h"][:, layer].astype(np.float32)
+        for tr, te in folds:
+            score[te] = LogisticRegression(max_iter=1000).fit(X[tr], target[tr]).decision_function(X[te])
+        auc[layer] = roc_auc_score(target, score)
+    block = min(block, n_layers - 1)
+    means = [auc[s:s + block].mean() for s in range(1, n_layers - block + 1)]
+    start = 1 + int(np.argmax(means))
+    layers = list(range(start, start + block))
+    # held-out AUROC of the concatenated block itself
+    score = np.zeros(len(target))
+    X = sep2_features(d["h"], layers)
+    for tr, te in folds:
+        score[te] = LogisticRegression(max_iter=1000).fit(X[tr], target[tr]).decision_function(X[te])
+    return layers, float(roc_auc_score(target, score))
 
 
 def layer_report(cases, cv, out_path):

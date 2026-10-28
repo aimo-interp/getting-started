@@ -39,7 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from common import DEFAULT_WORK_DIR, SOLVE_SUFFIX, append_jsonl, extract_answer, read_jsonl  # noqa: E402
+from common import DEFAULT_WORK_DIR, SOLVE_SUFFIX, append_jsonl, extract_answer, read_jsonl, tokenizer_path  # noqa: E402
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -80,20 +80,21 @@ def result_row(args, problems, job, answers, n_tokens, providers=None) -> dict:
 def run_vllm(args, problems, jobs, out) -> None:
     from vllm import LLM, SamplingParams
 
-    llm = LLM(args.model, tensor_parallel_size=args.tensor_parallel_size, seed=args.seed,
+    llm = LLM(args.model, tokenizer=tokenizer_path(args.model), tensor_parallel_size=args.tensor_parallel_size, seed=args.seed,
               max_model_len=args.max_tokens + 2048, gpu_memory_utilization=args.gpu_memory_utilization)
     tokenizer = llm.get_tokenizer()
     template_kwargs = {"reasoning_effort": args.effort} if args.effort != "default" else {}
+    suffix = "" if args.no_suffix else SOLVE_SUFFIX
 
     for start in range(0, len(jobs), args.chunk_size):
         chunk = jobs[start : start + args.chunk_size]
         prompts = [
-            tokenizer.apply_chat_template([{"role": "user", "content": text + SOLVE_SUFFIX}],
+            tokenizer.apply_chat_template([{"role": "user", "content": text + suffix}],
                                           tokenize=False, add_generation_prompt=True, **template_kwargs)
             for _, _, _, text, _ in chunk
         ]
         params = [
-            SamplingParams(n=n, temperature=1.0, top_p=1.0, top_k=-1, max_tokens=args.max_tokens,
+            SamplingParams(n=n, temperature=args.temperature, top_p=args.top_p, top_k=args.top_k, max_tokens=args.max_tokens,
                            seed=args.seed)
             for *_, n in chunk
         ]
@@ -197,6 +198,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-size", type=int, default=64, help="Prompts per vLLM call (resume granularity).")
     parser.add_argument("--workers", type=int, default=32, help="Parallel OpenRouter prompts.")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--temperature", type=float, default=1.0, help="vLLM only.")
+    parser.add_argument("--top-p", type=float, default=1.0, help="vLLM only.")
+    parser.add_argument("--top-k", type=int, default=-1, help="vLLM only.")
+    parser.add_argument("--no-suffix", action="store_true",
+                        help="vLLM only: the bare problem as the user turn, as cvbench/generate.py formats it.")
     return parser.parse_args()
 
 
@@ -213,7 +219,7 @@ def main() -> None:
     ]
     out = samples_path(args.samples_dir or args.work_dir / "samples", args.model, args.effort)
     done = {(row["problem_id"], row["type"], row["variant"]) for row in read_jsonl(out)}
-    jobs = [job for job in jobs if job[:3] not in done]
+    jobs = [job for job in jobs if job[:3] not in done and job[4] > 0]  # --variant-samples 0: originals only
     print(f"{args.model} ({args.effort}, {args.backend}): {len(problems)} problems, "
           f"{len(jobs)} prompts to sample, {len(done)} already done -> {out}", flush=True)
     if jobs:

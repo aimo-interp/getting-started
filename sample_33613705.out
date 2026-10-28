@@ -1,38 +1,0 @@
-allenai/Olmo-3-7B-Think (default, vllm): 100 problems, 677 prompts to sample, 0 already done -> /data/gpfs/projects/punim0478/bansaab/aimo_interp/data/labelgen/samples/allenai_Olmo-3-7B-Think__default.jsonl
-/home/bansaab/.local/lib/python3.9/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
-  import pynvml  # type: ignore[import]
-INFO 10-22 01:10:54 [__init__.py:239] Automatically detected platform cuda.
-`torch_dtype` is deprecated! Use `dtype` instead!
-INFO 10-22 01:11:22 [config.py:689] This model supports multiple tasks: {'embed', 'generate', 'score', 'reward', 'classify'}. Defaulting to 'generate'.
-INFO 10-22 01:11:22 [config.py:1901] Chunked prefill is enabled with max_num_batched_tokens=8192.
-INFO 10-22 01:11:26 [core.py:61] Initializing a V1 LLM engine (v0.8.4) with config: model='allenai/Olmo-3-7B-Think', speculative_config=None, tokenizer='allenai/Olmo-3-7B-Think', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=10240, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto,  device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='auto', reasoning_backend=None), observability_config=ObservabilityConfig(show_hidden_metrics=False, otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=0, served_model_name=allenai/Olmo-3-7B-Think, num_scheduler_steps=1, multi_step_stream_outputs=True, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=True, disable_mm_preprocessor_cache=False, mm_processor_kwargs=None, pooler_config=None, compilation_config={"level":3,"custom_ops":["none"],"splitting_ops":["vllm.unified_attention","vllm.unified_attention_with_output"],"use_inductor":true,"compile_sizes":[],"use_cudagraph":true,"cudagraph_num_of_warmups":1,"cudagraph_capture_sizes":[512,504,496,488,480,472,464,456,448,440,432,424,416,408,400,392,384,376,368,360,352,344,336,328,320,312,304,296,288,280,272,264,256,248,240,232,224,216,208,200,192,184,176,168,160,152,144,136,128,120,112,104,96,88,80,72,64,56,48,40,32,24,16,8,4,2,1],"max_capture_size":512}
-WARNING 10-22 01:11:28 [utils.py:2444] Methods determine_num_available_blocks,device_config,get_cache_block_size_bytes,initialize_cache not implemented in <vllm.v1.worker.gpu_worker.Worker object at 0x149a05ca71c0>
-INFO 10-22 01:11:29 [parallel_state.py:959] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0
-INFO 10-22 01:11:29 [cuda.py:221] Using Flash Attention backend on V1 engine.
-INFO 10-22 01:11:29 [gpu_model_runner.py:1276] Starting to load model allenai/Olmo-3-7B-Think...
-WARNING 10-22 01:11:29 [utils.py:76] Olmo3ForCausalLM has no vLLM implementation, falling back to Transformers implementation. Some features may not be supported and performance may not be optimal.
-INFO 10-22 01:11:29 [transformers.py:118] Using Transformers backend.
-`torch_dtype` is deprecated! Use `dtype` instead!
-WARNING 10-22 01:11:29 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
-INFO 10-22 01:11:30 [weight_utils.py:265] Using model weights format ['*.safetensors']
-Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
-Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:04<00:09,  4.72s/it]
-Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:09<00:04,  4.77s/it]
-Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:14<00:00,  4.79s/it]
-Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:14<00:00,  4.78s/it]
-
-INFO 10-22 01:11:45 [loader.py:458] Loading weights took 14.42 seconds
-INFO 10-22 01:11:45 [gpu_model_runner.py:1291] Model loading took 13.5948 GiB and 16.263553 seconds
-INFO 10-22 01:12:26 [backends.py:416] Using cache directory: /data/gpfs/projects/punim0478/bansaab/.cache/vllm/torch_compile_cache/a4facb27bf/rank_0_0 for vLLM's torch.compile
-INFO 10-22 01:12:26 [backends.py:426] Dynamo bytecode transform time: 40.60 s
-/home/bansaab/.local/lib/python3.9/site-packages/torch/_inductor/compile_fx.py:194: UserWarning: TensorFloat32 tensor cores for float32 matrix multiplication available but not enabled. Consider setting `torch.set_float32_matmul_precision('high')` for better performance.
-  warnings.warn(
-INFO 10-22 01:12:34 [backends.py:132] Cache the graph of shape None for later use
-INFO 10-22 01:13:00 [backends.py:144] Compiling a graph for general shape takes 33.96 s
-INFO 10-22 01:13:12 [monitor.py:33] torch.compile takes 74.56 s in total
-INFO 10-22 01:13:12 [kv_cache_utils.py:634] GPU KV cache size: 41,312 tokens
-INFO 10-22 01:13:12 [kv_cache_utils.py:637] Maximum concurrency for 10,240 tokens per request: 4.03x
-INFO 10-22 01:13:36 [gpu_model_runner.py:1626] Graph capturing finished in 24 secs, took 0.54 GiB
-INFO 10-22 01:13:36 [core.py:163] init engine (profile, create kv cache, warmup model) took 110.84 seconds
-INFO 10-22 01:13:36 [core_client.py:435] Core engine process 0 ready.
-Processed prompts:   0%|          | 0/256 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]Processed prompts:   2%|▏         | 4/256 [04:14<4:26:43, 63.51s/it, est. speed input: 2.38 toks/s, output: 128.99 toks/s]Processed prompts:   5%|▍         | 12/256 [06:44<2:03:28, 30.36s/it, est. speed input: 5.46 toks/s, output: 243.26 toks/s]Processed prompts:   6%|▋         | 16/256 [07:12<1:29:09, 22.29s/it, est. speed input: 8.76 toks/s, output: 303.23 toks/s]Processed prompts:   8%|▊         | 20/256 [09:03<1:34:42, 24.08s/it, est. speed input: 8.79 toks/s, output: 301.70 toks/s]Processed prompts:   9%|▉         | 24/256 [10:13<1:24:57, 21.97s/it, est. speed input: 9.38 toks/s, output: 320.67 toks/s]Processed prompts:  11%|█         | 28/256 [10:47<1:07:33, 17.78s/it, est. speed input: 10.36 toks/s, output: 354.18 toks/s]Processed prompts:  12%|█▎        | 32/256 [12:59<1:24:00, 22.50s/it, est. speed input: 9.41 toks/s, output: 336.21 toks/s] Processed prompts:  14%|█▍        | 36/256 [13:50<1:11:28, 19.49s/it, est. speed input: 9.73 toks/s, output: 355.10 toks/s]Processed prompts:  16%|█▌        | 40/256 [14:58<1:07:32, 18.76s/it, est. speed input: 9.76 toks/s, output: 364.55 toks/s][2026-10-22T01:29:10.229] error: *** JOB 33613705 ON spartan-gpgpu091 CANCELLED AT 2026-10-22T01:29:10 DUE to SIGNAL Terminated ***

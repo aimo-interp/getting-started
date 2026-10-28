@@ -4,17 +4,25 @@
 Sources, all restricted to the four small competition models:
 
 * ``train-main-v2``: organizer rows with a label (``is_robust`` not null).
-* ``val-sample``: the ``qwen3-8b:low`` rows, which are DeepSeek-R1-0528-Qwen3-8B.
 * ``labelgen``: rows produced by ``datagen/label.py`` from our own sampling.
+
+The public sample datasets (``val-sample``, ``aimo-interp-challenge-sample-full``) name their
+models with ``:low`` aliases such as ``qwen3-8b:low``, which do not identify a local checkpoint
+(README: the aliases are never passed during the Competition phase), so they are not used.
 
 Each row gets a ``group`` (hash of the problem text) so CV never splits one
 problem across folds, even when several models share it.
 
-    uv run cvbench/build_cases.py
+``--oss`` builds ``data/cvbench/cases_oss.jsonl`` instead: the gpt-oss-120b rows of
+``train-main-v2``. The reasoning effort is part of the model id (``openai/gpt-oss-120b:medium``), so each
+effort is cached and probed as its own model.
+
+    uv run cvbench/build_cases.py [--oss]
 """
 
 from __future__ import annotations
 
+import argparse
 import glob
 import hashlib
 import json
@@ -32,7 +40,7 @@ SMALL_MODELS = {
     "allenai/Olmo-3-7B-Think",
     "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
 }
-ALIASES = {"qwen3-8b:low": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"}
+OSS = "openai/gpt-oss-120b"
 
 
 def group_of(problem: str) -> str:
@@ -43,30 +51,35 @@ def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.open() if line.strip()]
 
 
+def oss_rows(train: pd.DataFrame) -> list[dict]:
+    return [dict(model_id=f"{OSS}:{r.reasoning_effort}", reasoning_effort=r.reasoning_effort, problem=r.problem,
+                 is_robust=bool(r.is_robust), max_drop=float(r.max_drop), source="train-main-v2")
+            for r in train.itertuples() if r.model_id == OSS and r.is_robust is not None]
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--oss", action="store_true", help="Build the gpt-oss-120b set (cases_oss.jsonl).")
+    args = parser.parse_args()
+    out = OUT.with_name("cases_oss.jsonl") if args.oss else OUT
     rows = []
     train = pd.read_parquet(glob.glob(str(HUB / "datasets--aimo-interp--train-main-v2/snapshots/*/data/*.parquet"))[0])
-    for r in train.itertuples():
+    if args.oss:
+        rows = oss_rows(train)
+    for r in [] if args.oss else train.itertuples():
         if r.model_id in SMALL_MODELS and r.is_robust is not None:
             rows.append(dict(model_id=r.model_id, reasoning_effort=r.reasoning_effort, problem=r.problem,
                              is_robust=bool(r.is_robust), max_drop=float(r.max_drop), source="train-main-v2"))
 
-    cases = {c["id"]: c for c in read_jsonl(ROOT / "data/val-sample/input/cases.jsonl")}
-    for label in read_jsonl(ROOT / "data/val-sample/reference/labels.jsonl"):
-        case = cases[label["id"]]
-        if case["model_id"] in ALIASES:
-            rows.append(dict(model_id=ALIASES[case["model_id"]], reasoning_effort="default", problem=case["problem"],
-                             is_robust=bool(label["is_robust"]), max_drop=None, source="val-sample"))
-
     labelgen = ROOT / "data/labelgen/labels.jsonl"
-    if labelgen.is_file():
+    if labelgen.is_file() and not args.oss:
         for r in read_jsonl(labelgen):
             if r["model_id"] in SMALL_MODELS and r["is_robust"] is not None:
                 rows.append(dict(model_id=r["model_id"], reasoning_effort=r["reasoning_effort"], problem=r["problem"],
                                  is_robust=bool(r["is_robust"]), max_drop=r["max_drop"], source="labelgen"))
 
     # One row per (model, problem); the organizer label wins over our own.
-    priority = {"train-main-v2": 0, "val-sample": 1, "labelgen": 2}
+    priority = {"train-main-v2": 0, "labelgen": 1}
     rows.sort(key=lambda r: priority[r["source"]])
     seen, unique = set(), []
     for r in rows:
@@ -77,14 +90,14 @@ def main() -> None:
             r["case_id"] = f"{r['model_id'].split('/')[-1]}:{key[1]}"
             unique.append(r)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    with OUT.open("w") as f:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w") as f:
         for r in unique:
             f.write(json.dumps(r) + "\n")
     counts = Counter((r["model_id"], r["source"], r["is_robust"]) for r in unique)
     for key in sorted(counts, key=str):
         print(key, counts[key])
-    print(f"{len(unique)} cases, {len({r['group'] for r in unique})} problems -> {OUT}")
+    print(f"{len(unique)} cases, {len({r['group'] for r in unique})} problems -> {out}")
 
 
 if __name__ == "__main__":

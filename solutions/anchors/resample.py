@@ -24,7 +24,7 @@ Stages, each resumable, all under ``work/``:
 * ``summary``: per curve, when it reaches/locks at 0.8, its largest jump and
   the anchor sentences -> ``summary.json`` and a printed report.
 
-    python analysis/anchors/resample.py --stages screen select anchors transplant summary
+    python solutions/anchors/resample.py --stages screen select anchors transplant summary
 """
 
 from __future__ import annotations
@@ -42,9 +42,9 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "datagen"))
 
-from common import SOLVE_SUFFIX, append_jsonl, extract_answer, read_jsonl  # noqa: E402
+from common import SOLVE_SUFFIX, append_jsonl, extract_answer, read_jsonl, tokenizer_path  # noqa: E402
 
-WORK = Path(os.environ.get("ANCHORS_WORK", HERE / "work"))
+WORK = Path(os.environ.get("ANCHORS_WORK", ROOT / "data" / "anchors"))
 THINK_END = "</think>"
 # Perturbation types in order of preference when drops tie; distract/typos come
 # first because analysis 5 (attention to edited tokens) is clearest for them.
@@ -102,7 +102,8 @@ class Sampler:
         self.SamplingParams = SamplingParams
         self.budget = args.budget
         kwargs = dict(seed=args.seed, max_model_len=args.budget + 4096, enable_prefix_caching=True,
-                      gpu_memory_utilization=args.gpu_memory_utilization, limit_mm_per_prompt={"image": 0, "video": 0})
+                      gpu_memory_utilization=args.gpu_memory_utilization, limit_mm_per_prompt={"image": 0, "video": 0},
+                      tokenizer=tokenizer_path(args.model))
         try:
             self.llm = LLM(args.model, **kwargs)
         except TypeError:  # older vLLM without limit_mm_per_prompt for this model
