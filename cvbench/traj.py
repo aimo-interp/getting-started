@@ -28,7 +28,7 @@ import whitebox as wb  # noqa: E402
 
 FRAC = 0.5            # layer depth of the trajectory
 END = 9               # last segment kept: drop the answer wrap-up (segment 9)
-FEATS = ["conv", "tort", "step_slope"]
+FEATS = ["step_mean", "norm_slope", "tort"]
 WITH_PROBE = True     # stack with the seg_probe 0-5 / 5-9 scores
 C = 0.3
 
@@ -48,10 +48,13 @@ def traj_features(seg: np.ndarray | None) -> dict:
     end = H[-1]
     cos = H @ end / (np.linalg.norm(H, axis=1) * np.linalg.norm(end) + 1e-12)
     steps = np.linalg.norm(np.diff(H, axis=0), axis=1)
+    norms = np.linalg.norm(H, axis=1)
     return {
         "conv": cos[:-1].mean(),                                   # how close to the end state it already is
         "tort": steps.sum() / (np.linalg.norm(end - H[0]) + 1e-12),  # path length / displacement
         "step_slope": np.polyfit(np.arange(len(steps)), np.log(steps + 1e-12), 1)[0],  # do steps shrink?
+        "step_mean": np.log(steps + 1e-12).mean(),                 # how far it moves per segment
+        "norm_slope": np.polyfit(np.arange(len(norms)), norms / norms.mean(), 1)[0],  # does the state grow?
     }
 
 
