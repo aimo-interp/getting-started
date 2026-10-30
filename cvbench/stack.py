@@ -85,6 +85,83 @@ def txp_feats(cases, budget=16384, n=8):
     return pd.DataFrame(rows, index=cases.index)[TXP_FEATS]
 
 
+TXX_EXTRA = ["answered", "n_distinct", "ans_entropy", "len_sd", "agree_prov", "fin_len", "first_frac"]
+
+
+def txx_feats(cases, budget=16384, n=8, extra=None):
+    """tx features plus extra transcript statistics (loop 2026-10-31): answered share, distinct answers and
+    their entropy, sd of log length, provisional agreement, mean log length of finished samples, and where the
+    eventual answer first appears as a fraction of the reasoning."""
+    import math
+    from collections import Counter
+    sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
+    import train as tp
+    from transcript_probe.features import reasoning_of
+    tcases = {(c["model_id"], c["group"]): c for c in tp.load_cases(oss=True)}
+    rows = []
+    for c in cases.itertuples():
+        key = (c.model_id, c.group)
+        if key not in tcases:
+            rows.append({})
+            continue
+        tc = tcases[key]
+        f = tp.case_features(tc, budget, n)
+        x = tc["screen"]
+        toks = [min(int(t), budget) for t in x["n_tokens"][:n]]
+        ans = [a for a in f["answers"] if a is not None]
+        cnt = Counter(ans)
+        ent = -sum(v / len(ans) * math.log(v / len(ans)) for v in cnt.values()) if ans else math.log(n)
+        fin = [math.log(t + 1) for t, a in zip(toks, f["answers"]) if a is not None]
+        fracs = []
+        for text, a, t in zip(x["texts"][:n], f["answers"], x["n_tokens"][:n]):
+            if a is None:
+                continue
+            text = tp.clean(text)
+            t = int(t)
+            if t > budget:
+                text = text[: int(budget * len(text) / max(t, 1))]
+            think = reasoning_of(text)
+            import re
+            hit = re.search(r"(?<!\d)%s(?!\d)" % re.escape(str(a)), think)
+            fracs.append((hit.start() if hit else len(think)) / max(len(think), 1))
+        rows.append({**{k: f[k] for k in list(tp.FEATURES) + ["length"]},
+                     "answered": len(ans) / n, "n_distinct": len(cnt), "ans_entropy": ent,
+                     "len_sd": float(np.std([math.log(t + 1) for t in toks])), "agree_prov": f["agree_prov"],
+                     "fin_len": float(np.mean(fin)) if fin else float(np.log(budget + 1)),
+                     "first_frac": float(np.mean(fracs)) if fracs else 1.0})
+    cols = list(tp.FEATURES) + ["length"] + (extra or TXX_EXTRA)
+    return pd.DataFrame(rows, index=cases.index)[cols]
+
+
+def gagree_feats(cases, budget=16384, n=8):
+    """Greedy 4k trace vs the 8 samples: share of samples (final or provisional answers) that give the greedy
+    trace's final-or-provisional answer, and whether the greedy trace has any answer at all."""
+    import json
+    sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
+    import re
+    import train as tp
+    from transcript_probe.features import extract_answer, provisional_answer
+    tcases = {(c["model_id"], c["group"]): c for c in tp.load_cases(oss=True)}
+    greedy = {}
+    for f in (cv.DATA / "greedy").glob("*.jsonl"):
+        for line in open(f):
+            r = json.loads(line)
+            greedy[(r["model_id"], r["group"])] = r.get("generated_text") or ""
+    rows = []
+    for c in cases.itertuples():
+        key = (c.model_id, c.group)
+        if key not in tcases or key not in greedy:
+            rows.append({})
+            continue
+        f = tp.case_features(tcases[key], budget, n)
+        in_problem = set(re.findall(r"\d+", c.problem))
+        g = extract_answer(greedy[key]) or provisional_answer(greedy[key], in_problem)
+        prov = f["provisional"]
+        rows.append({"g_share": float(np.mean([a == g for a in prov])) if g is not None else 0.0,
+                     "g_has": float(g is not None)})
+    return pd.DataFrame(rows, index=cases.index, columns=["g_share", "g_has"])
+
+
 def tx_feats(cases, budget=16384, n=8):
     sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
     import train as tp
@@ -218,6 +295,62 @@ def crossfit(score, y, groups, tr, inner=5, seed=0):
     return out
 
 
+def lda_scores(acts, models, y, tr, site, frac, k=None):
+    """Per model: PCA (fit on training rows) to min(n_tr-1, 32) dims, Ledoit-Wolf shrinkage LDA direction,
+    projection scaled by the training sd. Same contract as wb.diffmean_scores_layer."""
+    from sklearn.covariance import LedoitWolf
+    feat = np.zeros(len(acts))
+    for m in np.unique(models):
+        idx = np.where(models == m)[0]
+        tr_m = np.intersect1d(idx, tr)
+        y_tr = y[tr_m]
+        if y_tr.all() or (~y_tr).all():
+            continue
+        L = acts[idx[0]][site].shape[0]
+        layer = wb.layer_of(L, frac)
+        H = np.stack([acts[i][site][layer] for i in idx]).astype(np.float64)
+        H_tr = np.stack([acts[i][site][layer] for i in tr_m]).astype(np.float64)
+        mu = H_tr.mean(0)
+        U, S, Vt = np.linalg.svd(H_tr - mu, full_matrices=False)
+        kk = k or min(len(tr_m) - 1, 32)
+        P = Vt[:kk]
+        Z_tr, Z = (H_tr - mu) @ P.T, (H - mu) @ P.T
+        Zc = np.concatenate([Z_tr[y_tr] - Z_tr[y_tr].mean(0), Z_tr[~y_tr] - Z_tr[~y_tr].mean(0)])
+        cov = LedoitWolf().fit(Zc).covariance_
+        w = np.linalg.solve(cov, Z_tr[y_tr].mean(0) - Z_tr[~y_tr].mean(0))
+        proj_tr, proj = Z_tr @ w, Z @ w
+        feat[idx] = proj / (proj_tr.std() + 1e-8)
+    return feat[:, None]
+
+
+SAFE_MIN_AUC = 0.6
+
+
+def safe_seg_scores(acts, models, y, groups, tr, sites=("seg_0_5", "seg_5_9"), frac=0.5, min_auc=None, soft=False):
+    """seg probe scores with a per-model reliability check (loop 2026-10-31): for each model and window, the
+    out-of-fold AUC of the DIM score on that model's *training* rows (grouped 5-fold, 2 seeds). Windows whose
+    inner AUC is below ``min_auc`` score 0 for that model (no information) instead of a possibly inverted
+    direction; with ``soft`` the score is scaled by 2*(AUC-0.5) clipped to [0, 1]."""
+    from sklearn.metrics import roc_auc_score
+    from sklearn.model_selection import StratifiedGroupKFold
+    min_auc = SAFE_MIN_AUC if min_auc is None else min_auc
+    full = np.concatenate([wb.diffmean_scores(acts, models, y, tr, None, s, frac) for s in sites], 1)
+    inner = np.zeros((len(y), len(sites)))
+    for seed in range(2):
+        for itr, ite in StratifiedGroupKFold(5, shuffle=True, random_state=seed).split(tr, y[tr], groups[tr]):
+            sc = np.concatenate([wb.diffmean_scores(acts, models, y, tr[itr], None, s, frac) for s in sites], 1)
+            inner[tr[ite]] += sc[tr[ite]] / 2
+    for m in np.unique(models):
+        idx = np.where(models == m)[0]
+        tr_m = np.intersect1d(idx, tr)
+        for j in range(len(sites)):
+            yy = y[tr_m]
+            auc = roc_auc_score(yy, inner[tr_m, j]) if 0 < yy.sum() < len(yy) else 0.5
+            w = float(np.clip(2 * (auc - 0.5), 0, 1)) if soft else float(auc >= min_auc)
+            full[idx, j] *= w
+    return full
+
+
 def make_blocks(cases, names, args):
     """name -> callable(tr) -> [n, k] features."""
     y = cases.is_robust.astype(bool).to_numpy()
@@ -228,6 +361,30 @@ def make_blocks(cases, names, args):
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: np.concatenate(
                 [wb.diffmean_scores(acts, models, y, tr, None, s, args.frac) for s in ("seg_0_5", "seg_5_9")], 1)
+        elif name in ("seg_ml", "seg_ml2"):  # DIM score averaged over several layers (fracs)
+            acts = wb.load_acts(cases, cv)
+            fr = (0.3, 0.4, 0.5, 0.6, 0.7) if name == "seg_ml" else (0.4, 0.5, 0.6)
+            out[name] = lambda tr, acts=acts, fr=fr: np.concatenate(
+                [np.mean([wb.diffmean_scores(acts, models, y, tr, None, s, f) for f in fr], 0)
+                 for s in ("seg_0_5", "seg_5_9")], 1)
+        elif name in ("seg_lda", "seg_lda_ml"):  # shrinkage LDA direction in a PCA basis instead of plain DIM
+            acts = wb.load_acts(cases, cv)
+            fr = (0.5,) if name == "seg_lda" else (0.4, 0.5, 0.6)
+            out[name] = lambda tr, acts=acts, fr=fr: np.concatenate(
+                [np.mean([lda_scores(acts, models, y, tr, s, f) for f in fr], 0) for s in ("seg_0_5", "seg_5_9")], 1)
+        elif name.startswith("segw_"):  # other windows, e.g. segw_0_3+3_7+7_10
+            acts = wb.load_acts(cases, cv)
+            sites = ["seg_" + w for w in name[5:].split("+")]
+            out[name] = lambda tr, acts=acts, sites=sites: np.concatenate(
+                [wb.diffmean_scores(acts, models, y, tr, None, s, args.frac) for s in sites], 1)
+        elif name in ("seg_safe", "seg_soft", "seg_safe5", "seg_safe7"):
+            acts = wb.load_acts(cases, cv)
+            kw = {"seg_safe": {}, "seg_soft": {"soft": True}, "seg_safe5": {"min_auc": 0.5},
+                  "seg_safe7": {"min_auc": 0.7}}[name]
+            out[name] = lambda tr, acts=acts, kw=kw: safe_seg_scores(acts, models, y, groups, tr, frac=args.frac, **kw)
+        elif name == "seg1":  # one window 0-9 (fewer parameters)
+            acts = wb.load_acts(cases, cv)
+            out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)
         elif name == "effort":
             import effort
             eacts, t = effort.load_sites(cases), effort.target_length(cases)
@@ -253,6 +410,10 @@ def make_blocks(cases, names, args):
                  "ttraj": lambda: ttraj_feats(cases),
                  "tx": lambda: tx_feats(cases),
                  "tx4": lambda: tx_feats(cases, 4096), "tx8": lambda: tx_feats(cases, 8192),
+                 "txx": lambda: txx_feats(cases),
+                 "gagree": lambda: gagree_feats(cases),
+                 **{f"txx_{e}": (lambda e=e: txx_feats(cases, extra=[e])) for e in TXX_EXTRA},
+                 "txx8": lambda: txx_feats(cases, 8192), "txx4": lambda: txx_feats(cases, 4096),
                  "txp": lambda: txp_feats(cases), "txp4": lambda: txp_feats(cases, 4096),
                  "txp8": lambda: txp_feats(cases, 8192), "txp2": lambda: txp_feats(cases, 2048),
                  "lb": lambda: lb_feats(cases),
