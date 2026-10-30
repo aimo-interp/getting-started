@@ -153,6 +153,34 @@ def commit_feats(cases):
     return pd.DataFrame(rows, index=cases.index, columns=["c_mean", "c_half", "c_early", "c_commit", "c_flips", "c_final"])
 
 
+LIREF_SITES = {"liref_last": "last_prompt", "liref_prob": "prob_mean", "liref_cot": "seg_0_5", "liref_cot2": "seg_5_9"}
+
+
+def liref_feats(cases, frac, sites=("liref_last", "liref_cot", "liref_cot2")):
+    """Label-free projection of each case's cached states onto the model's Linear Reasoning Feature
+    r = mean h(reasoning prompts) - mean h(memory prompts) at the last prompt token, layer ``frac``
+    (Hong et al., 2025; liref/<model>.npz). NaN for models without a contrast set."""
+    acts = wb.load_acts(cases, cv)
+    dirs = {}
+    for m in cases.model_id.unique():
+        p = cv.DATA / "liref" / f"{cv.safe(m)}.npz"
+        if not p.is_file():
+            continue
+        z = np.load(p)
+        H, kind = z["h_last"].astype(np.float32), z["kind"]
+        layer = wb.layer_of(H.shape[1], frac)
+        r = H[kind == "reasoning", layer].mean(0) - H[kind == "memory", layer].mean(0)
+        dirs[m] = (layer, r / (np.linalg.norm(r) + 1e-8))
+    rows = []
+    for c, a in zip(cases.itertuples(), acts):
+        if c.model_id not in dirs:
+            rows.append({})
+            continue
+        layer, r = dirs[c.model_id]
+        rows.append({name: float(a[site][layer] @ r) for name, site in LIREF_SITES.items() if site in a})
+    return pd.DataFrame(rows, index=cases.index, columns=list(sites))
+
+
 def lb_feats(cases):
     import lookback
     _, S = lookback.load(cases)
@@ -185,6 +213,11 @@ def make_blocks(cases, names, args):
             out[name] = lambda tr, eacts=eacts, t=t: cv.zscore_within_model(
                 pd.DataFrame(effort.ridge_scores(eacts, models, t, tr, effort.SITE, effort.FRAC, effort.ALPHA),
                              index=cases.index), cases)
+        elif name == "effort2":  # probe trained on the unlabelled effort-stage prompts
+            import effort
+            eacts = effort.load_sites(cases)
+            out[name] = lambda tr, eacts=eacts: cv.zscore_within_model(
+                pd.DataFrame(effort.unlabelled_scores(cases, eacts, tr), index=cases.index), cases)
         elif name in ("hedge_at", "hedge_pre", "hedge_post"):
             acts = load_hedge(cases, name)
             out[name] = lambda tr, acts=acts, site=name: wb.diffmean_scores(acts, models, y, tr, None, site, args.frac)
@@ -203,6 +236,9 @@ def make_blocks(cases, names, args):
                  "prob": lambda: prob_feats(cases),
                  "chal": lambda: cv.m_challenge(cases, args)[0],
                  "commit": lambda: commit_feats(cases)[COMMIT_FEATS],
+                 "liref": lambda: liref_feats(cases, args.frac),
+                 "liref_last": lambda: liref_feats(cases, args.frac, ("liref_last",)),
+                 "liref_cot": lambda: liref_feats(cases, args.frac, ("liref_cot", "liref_cot2")),
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()
             Z = cv.zscore_within_model(F, cases)
