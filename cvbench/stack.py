@@ -179,6 +179,12 @@ def make_blocks(cases, names, args):
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: np.concatenate(
                 [wb.diffmean_scores(acts, models, y, tr, None, s, args.frac) for s in ("seg_0_5", "seg_5_9")], 1)
+        elif name == "effort":
+            import effort
+            eacts, t = effort.load_sites(cases), effort.target_length(cases)
+            out[name] = lambda tr, eacts=eacts, t=t: cv.zscore_within_model(
+                pd.DataFrame(effort.ridge_scores(eacts, models, t, tr, effort.SITE, effort.FRAC, effort.ALPHA),
+                             index=cases.index), cases)
         elif name in ("hedge_at", "hedge_pre", "hedge_post"):
             acts = load_hedge(cases, name)
             out[name] = lambda tr, acts=acts, site=name: wb.diffmean_scores(acts, models, y, tr, None, site, args.frac)

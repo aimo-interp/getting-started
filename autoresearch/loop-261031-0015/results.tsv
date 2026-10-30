@@ -1,0 +1,4 @@
+# metric_direction: higher_is_better
+iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
+0	2026-10-31T00:15:59+11:00	d6671a6	0.7792	0.0	-	-	baseline	seg+traj, C=0.1, 118 cases
+1	2026-10-31T00:17:56+11:00	-	0.7797	+0.0005	-	-	discard	effort probe prototype: ridge seg_0_2 @.5 alpha 1e2 -> mean log len of 8 cached samples, fitted on ~20 cases/model; alone AUC .70 (target .69), stacked flat
