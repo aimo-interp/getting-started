@@ -1,3 +1,9 @@
 # metric_direction: higher_is_better
 iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 0	2026-10-30T21:27:40+11:00	f292e1f	0.7792	0.0	-	-	baseline	seg+traj, logistic C=0.1, 118 cases 20x5 CV
+1	2026-10-30T23:02:43+11:00	-	0.7831	+0.0039	-	-	discard	hedge_at probe (state at hedge tokens) + seg+traj: inside noise (std .016); Qwen up, Olmo/oss-med down
+2	2026-10-30T23:02:43+11:00	-	0.7792	+0.0000	-	-	discard	hedge_pre (16 tokens before each hedge) + seg+traj; alone .726 AUC .635
+3	2026-10-30T23:02:43+11:00	-	0.7716	-0.0076	-	-	discard	hedge_post (32 tokens from each hedge on) + seg+traj
+4	2026-10-30T23:02:43+11:00	-	0.7763	-0.0029	-	-	discard	early-answer commitment curve (c_mean, c_commit; pre-registered) + seg+traj; alone AUC .593 (small models .634), acc = always-true
+5	2026-10-30T23:02:43+11:00	-	0.8102	-0.0051	-	-	discard	commit on top of seg+traj+tx (.815)
+6	2026-10-30T23:02:43+11:00	-	0.7962	-0.0191	-	-	discard	hedge_pre on top of seg+traj+tx

@@ -282,9 +282,10 @@ def main() -> None:
     ap.add_argument("--sample", type=int, default=0, help="tseg1: which sampled trace")
     ap.add_argument("--repeats", type=int, default=20)
     ap.add_argument("--score-sources", nargs="+", default=None)
+    ap.add_argument("--cases", nargs="+", default=list(cv.CASE_FILES), help="Case files under data/cvbench.")
     ap.add_argument("--write", action="store_true")
     args = ap.parse_args()
-    cases = cv.load_cases()
+    cases = cv.load_cases(args.cases)
     mask = cases.source.isin(args.score_sources).to_numpy() if args.score_sources else None
     blocks = make_blocks(cases, args.blocks, args)
     if args.gate:
