@@ -485,6 +485,46 @@ def pc_scores(acts, models, tr, loglen, sites=("seg_0_5", "seg_5_9"), frac=0.5, 
     return np.concatenate(out, 1)
 
 
+def load_reader(cases, reader="Qwen_Qwen3.5-4B"):
+    """Reader-model states (cvbench/reader.py): per case {seg_0_5, seg_5_9, seg_0_9, last_prompt} [L+1, d]."""
+    out = []
+    for c in cases.itertuples():
+        z = np.load(cv.DATA / "reader" / reader / cv.safe(c.model_id) / f"{c.group}.npz")
+        seg = z["seg_mean"].astype(np.float32)
+        out.append({"seg_0_5": seg[0:5].mean(0), "seg_5_9": seg[5:9].mean(0), "seg_0_9": seg[0:9].mean(0),
+                    "last_prompt": z["last_prompt"].astype(np.float32)})
+    return out
+
+
+def reader_scores(racts, models, y, tr, sites=("seg_0_5", "seg_5_9"), frac=0.5, pooled=True):
+    """One diff-in-means direction on the reader's states. ``pooled``: fitted on all models' training rows
+    (each model centred on its own training mean first); else per model. Scaled per model by training sd."""
+    out = np.zeros((len(y), len(sites)))
+    L = racts[0][sites[0]].shape[0]
+    layer = wb.layer_of(L, frac)
+    for j, site in enumerate(sites):
+        H = np.stack([a[site][layer] for a in racts]).astype(np.float64)
+        Hc = H.copy()
+        for m in np.unique(models):
+            k = models == m
+            trk = np.zeros(len(y), bool); trk[tr] = True; trk &= k
+            Hc[k] -= H[trk].mean(0) if trk.any() else H[k].mean(0)
+        trm = np.zeros(len(y), bool); trm[tr] = True
+        groups_ = [np.ones(len(y), bool)] if pooled else [models == m for m in np.unique(models)]
+        for g in groups_:
+            r = trm & g
+            if y[r].all() or (~y[r]).all():
+                continue
+            d = Hc[r & y].mean(0) - Hc[r & ~y].mean(0)
+            d /= np.linalg.norm(d) + 1e-8
+            proj = Hc @ d
+            for m in np.unique(models[g]):
+                k = (models == m) & g
+                sd = proj[k & trm].std() if (k & trm).sum() > 1 else proj[k].std()
+                out[k, j] = proj[k] / (sd + 1e-8)
+    return out
+
+
 SAFE_MIN_AUC = 0.6
 
 
@@ -587,6 +627,16 @@ def make_blocks(cases, names, args):
             loglen = np.log1p(np.array([n_tok.get((c.model_id, c.group), 4096) for c in cases.itertuples()], float))
             kk = int(name[2])
             out[name] = lambda tr, acts=acts, loglen=loglen, kk=kk: pc_scores(acts, models, tr, loglen, frac=args.frac, k=kk)
+        elif name.startswith("rdr"):  # rdr (pooled, frac .5), rdr_pm (per model), rdr3 / rdr7 (frac .3/.7), rdr_safe
+            racts = load_reader(cases)
+            fr = {"rdr3": 0.3, "rdr7": 0.7, "rdr8": 0.8}.get(name, 0.5)
+            pooled = not name.endswith("_pm")
+            if name == "rdr_safe":
+                out[name] = lambda tr, racts=racts: safe_seg_scores(
+                    racts, models, y, groups, tr, scorer=lambda trr, s: reader_scores(racts, models, y, trr, (s,), 0.5))
+            else:
+                out[name] = lambda tr, racts=racts, fr=fr, pooled=pooled: reader_scores(racts, models, y, tr, frac=fr,
+                                                                                    pooled=pooled)
         elif name == "seg1":  # one window 0-9 (fewer parameters)
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)

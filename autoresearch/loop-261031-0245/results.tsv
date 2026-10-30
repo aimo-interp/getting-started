@@ -19,3 +19,4 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 16	2026-10-31T03:44:36+11:00	-	0.8148	-0.004	-	-	discard	seg: remove top-k PCs before DIM (k=1-5: .78-.79, top PC carries signal); bootstrap-averaged direction (.815, noise)
 17	2026-10-31T04:11:10+11:00	-	0.8174	-0.002	-	-	discard	label-free top-PC projection oriented by greedy length (alone AUC .66; flat on stack)
 18	2026-10-31T04:15:23+11:00	-	0.8110	-0.008	-	-	discard	lookback / 16k sampled-trace probe on top of gated stack; DeepSeek fails on sampled traces too (.53-.56)
+19	2026-10-31T05:02:17+11:00	-	0.8114	-0.008	-	-	discard	reader probe (Qwen3.5-4B reads every model greedy CoT, one pooled DIM over 118 cases): alone AUC .787 (seg .691), DeepSeek .58->.63-.69; rdr+traj AUC .81 vs .72 but accuracy flat on the stack
