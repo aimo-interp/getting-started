@@ -32,6 +32,11 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   the ``HEDGE_PRE`` tokens before each hedge and the ``HEDGE_POST`` tokens from it on. (B) early-answer
   commitment: the model's own budget-forced answer A after the full trace, then log p(A) when the trace is
   cut at each of ``--segments`` boundaries and closed with the same forcing suffix -> ``hedge/<model>/<group>.npz``.
+* ``effort``: training data for the effort probe (``cvbench/effort.py``). For every sep2 prompt of the model
+  (originals and variants) that has sampled lengths (``sep2/samples`` or ``len/samples``) and a greedy
+  response (``sep2/greedy``, 4k), one pass over prompt + response saves the mean hidden state over the
+  first 1/2/3/5/9 of 10 response segments and the last prompt token, at layer fracs ``EFFORT_FRACS``,
+  with the mean log sampled length -> ``effort/<model>/<pid>_<type>_<variant>.npz``.
 * ``sep``: training data for the semantic-entropy probe. For every labelgen prompt
   of the model (originals and perturbed variants, ``data/labelgen/samples``), the
   last-prompt-token hidden state at every layer (same template as ``acts``) and the
@@ -689,6 +694,61 @@ def run_noise(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
         state["noise"] = None
 
 
+EFFORT_FRACS = (0.3, 0.5, 0.7)
+EFFORT_WINDOWS = ((0, 1), (0, 2), (0, 3), (0, 5), (0, 9))
+
+
+@torch.no_grad()
+def run_effort(model, tokenizer, model_id: str, segments: int = 10) -> None:
+    out_dir = DATA / "effort" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    greedy_path = DATA / "sep2" / "greedy" / f"{safe(model_id)}__default.traces.jsonl"
+    if not greedy_path.is_file():
+        print(f"[effort] {model_id}: no sep2 greedy traces", flush=True)
+        return
+    problems = {r["problem_id"]: r["problem"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    variants = {(r["problem_id"], r["type"], int(r["variant"])): r["text"]
+                for r in read_jsonl(ROOT / "data" / "labelgen" / "variants.jsonl")}
+    greedy = {(r["problem_id"], r["type"], int(r["variant"])): r["texts"][0] for r in read_jsonl(greedy_path)}
+    target = {}
+    for d in ("sep2", "len"):  # sep2: 10 samples at 8k; len: 4 samples; either gives mean log tokens
+        path = DATA / d / "samples" / f"{safe(model_id)}__default.jsonl"
+        for r in read_jsonl(path) if path.is_file() else []:
+            key = (r["problem_id"], r["type"], int(r["variant"]))
+            n = np.array(r["n_tokens"], float)
+            target.setdefault(key, (float(np.log1p(n).mean()), float((n >= 8192).mean()), len(n)))
+    keys = [k for k in greedy if k in target and (k[1] == "original" or k in variants)]
+    todo = [k for k in keys if not (out_dir / f"{k[0]}_{k[1]}_{k[2]}.npz").is_file()]
+    print(f"[effort] {model_id}: {len(keys)} prompts with greedy + sampled lengths, {len(todo)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    for k, key in enumerate(todo, 1):
+        pid, kind, var = key
+        text = problems[pid] if kind == "original" else variants[key]
+        prompt_ids = tokenizer(format_problem(tokenizer, text), add_special_tokens=False, truncation=True,
+                               max_length=2048)["input_ids"]
+        response_ids = tokenizer(greedy[key], add_special_tokens=False)["input_ids"][:4096]
+        p, n = len(prompt_ids), len(response_ids)
+        if n < segments:
+            continue
+        hs = model(input_ids=torch.tensor([prompt_ids + response_ids], device=device), output_hidden_states=True,
+                   logits_to_keep=1).hidden_states
+        layers = [int(round(f * (len(hs) - 1))) for f in EFFORT_FRACS]
+        bounds = np.linspace(0, n, segments + 1).round().astype(int)
+        arrays = {"last_prompt": torch.stack([hs[l][0, p - 1] for l in layers]).float().cpu().numpy().astype(np.float16)}
+        for a, b in EFFORT_WINDOWS:
+            arrays[f"seg_{a}_{b}"] = torch.stack([hs[l][0, p + bounds[a]:p + bounds[b]].float().mean(0)
+                                                  for l in layers]).cpu().numpy().astype(np.float16)  # [fracs, d]
+        del hs
+        log_len, cap_rate, n_samples = target[key]
+        np.savez(out_dir / f"{pid}_{kind}_{var}.npz", **arrays, fracs=np.array(EFFORT_FRACS), log_len=log_len,
+                 cap_rate=cap_rate, n_samples=n_samples, n_resp=n, problem_id=pid, type=kind, variant=var,
+                 problem=problems[pid])
+        if k % 100 == 0:
+            torch.cuda.empty_cache()
+            print(f"  {k}/{len(todo)}", flush=True)
+    print(f"[effort] {model_id}: done", flush=True)
+
+
 HEDGE = re.compile(r"\b(wait|hmm+|alternatively|actually|let me (?:double[- ]check|re-?check|verify|reconsider)|"
                    r"but (?:wait|hold on)|on second thought|i made (?:a|an) (?:mistake|error)|that'?s (?:not right|wrong))\b",
                    re.IGNORECASE)  # cvbench/cv.py HESITATION
@@ -762,7 +822,7 @@ def run_hedge(model, tokenizer, model_id: str, todo: dict[str, str], segments: i
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge", "effort"])
     parser.add_argument("--models", nargs="+", default=None, help="Default: every model in the case file.")
     parser.add_argument("--cases", default="cases.jsonl", help="Case file under data/cvbench.")
     parser.add_argument("--batch-size", type=int, default=16)
@@ -806,6 +866,8 @@ def main() -> None:
                         run_segs(model, tokenizer, model_id, todo, args.segments)
                     elif stage == "noise":
                         run_noise(model, tokenizer, model_id, todo)
+                    elif stage == "effort":
+                        run_effort(model, tokenizer, model_id, args.segments)
                     elif stage == "hedge":
                         run_hedge(model, tokenizer, model_id, todo, args.segments)
                     elif stage == "lookback":
