@@ -14,3 +14,5 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 11	2026-10-31T02:59:50+11:00	-	0.7975	-0.022	-	-	discard	seg direction pooled over gpt-oss efforts
 12	2026-10-31T02:59:50+11:00	f7c3ff8	0.8203	+0.001	-	-	keep	stack-probe package with gated seg (gated cv .820, .80 at 2k-8k)
 13	2026-10-31T02:59:50+11:00	-	0.8085	-0.011	-	-	discard	per-model sign check on traj/tx features
+14	2026-10-31T03:15:10+11:00	-	0.8216	+0.002	-	-	discard	difficulty fills gated-off seg slots (diff_fill/seg_fill): noise, worse at 4k/8k
+15	2026-10-31T03:15:10+11:00	-	0.8055	+0.005	-	-	discard	early-trace features at 4k (anchor agreement/churn, hesitation): replace tx4 .800->.806, no gain on top of tx

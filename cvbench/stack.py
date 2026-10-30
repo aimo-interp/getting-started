@@ -162,6 +162,53 @@ def gagree_feats(cases, budget=16384, n=8):
     return pd.DataFrame(rows, index=cases.index, columns=["g_share", "g_has"])
 
 
+TXE_FEATS = ["anchor_agree", "anchor_churn", "wait_rate", "anchor_top"]
+
+
+def txe_feats(cases, budget=4096, n=8, base=True):
+    """Early-trace transcript features that need no finished sample (loop 2026-10-31), at ``budget`` tokens:
+    anchor_agree: share of samples whose most repeated ``= N`` value (not from the problem) is the modal one
+    across samples; anchor_churn: mean number of distinct such values per 1k chars; wait_rate: hesitation
+    words per 1k chars; anchor_top: mean count of each sample's top value. With ``base`` the tx features too."""
+    import re
+    from collections import Counter
+    sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
+    import train as tp
+    from transcript_probe.features import _ANCHOR
+    hes = re.compile(r"\b(wait|hmm+|alternatively|actually|let me (?:re-?check|verify|reconsider))\b", re.I)
+    tcases = {(c["model_id"], c["group"]): c for c in tp.load_cases(oss=True)}
+    rows = []
+    for c in cases.itertuples():
+        key = (c.model_id, c.group)
+        if key not in tcases:
+            rows.append({})
+            continue
+        tc = tcases[key]
+        x = tc["screen"]
+        in_problem = set(re.findall(r"\d+", c.problem))
+        tops, churn, waits, topn = [], [], [], []
+        for text, t in list(zip(x["texts"], x["n_tokens"]))[:n]:
+            text, t = tp.clean(text), int(t)
+            if t > budget:
+                text = text[: int(budget * len(text) / max(t, 1))]
+            vals = [m.group(1) for m in _ANCHOR.finditer(text) if m.group(1) not in in_problem]
+            cnt = Counter(vals)
+            k = max(len(text), 1) / 1000
+            tops.append(cnt.most_common(1)[0][0] if vals else None)
+            topn.append(cnt.most_common(1)[0][1] if vals else 0)
+            churn.append(len(cnt) / k)
+            waits.append(len(hes.findall(text)) / k)
+        given = [v for v in tops if v is not None]
+        row = {"anchor_agree": Counter(given).most_common(1)[0][1] / n if given else 0.0,
+               "anchor_churn": float(np.mean(churn)), "wait_rate": float(np.mean(waits)), "anchor_top": float(np.mean(topn))}
+        if base:
+            f = tp.case_features(tc, budget, n)
+            row.update({k: f[k] for k in list(tp.FEATURES) + ["length"]})
+        rows.append(row)
+    cols = (list(tp.FEATURES) + ["length"] if base else []) + TXE_FEATS
+    return pd.DataFrame(rows, index=cases.index)[cols]
+
+
 def tx_feats(cases, budget=16384, n=8):
     sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
     import train as tp
@@ -442,6 +489,19 @@ def make_blocks(cases, names, args):
                   "tx": lambda: tx_feats(cases)}[base]()
             Zb = np.asarray(cv.zscore_within_model(Fb, cases), dtype=float)
             out[name] = lambda tr, Zb=Zb: sign_safe(Zb, models, y, tr)
+        elif name in ("seg_fill", "seg_fill_dim"):  # gated seg; gated-off windows filled by the label-free difficulty score
+            acts = wb.load_acts(cases, cv)
+            import difficulty
+            col = "diff_last" if name == "seg_fill" else "dim_last"
+            D = -np.asarray(cv.zscore_within_model(difficulty.diff_feats(cases, (col,)), cases), dtype=float)[:, 0]
+            out[name] = lambda tr, acts=acts, D=D: np.where(
+                (g := safe_seg_scores(acts, models, y, groups, tr, frac=args.frac)) == 0, D[:, None], g)
+        elif name == "diff_fill":  # difficulty only for models where every seg window is gated off (separate column)
+            acts = wb.load_acts(cases, cv)
+            import difficulty
+            D = -np.asarray(cv.zscore_within_model(difficulty.diff_feats(cases, ("diff_last",)), cases), dtype=float)[:, 0]
+            out[name] = lambda tr, acts=acts, D=D: np.where(
+                (safe_seg_scores(acts, models, y, groups, tr, frac=args.frac) == 0).all(1), D, 0.0)[:, None]
         elif name == "seg1":  # one window 0-9 (fewer parameters)
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)
@@ -471,6 +531,10 @@ def make_blocks(cases, names, args):
                  "tx": lambda: tx_feats(cases),
                  "tx4": lambda: tx_feats(cases, 4096), "tx8": lambda: tx_feats(cases, 8192),
                  "txx": lambda: txx_feats(cases),
+                 "txe4": lambda: txe_feats(cases, 4096), "txe8": lambda: txe_feats(cases, 8192),
+                 "txe16": lambda: txe_feats(cases, 16384), "txe2": lambda: txe_feats(cases, 2048),
+                 "e4": lambda: txe_feats(cases, 4096, base=False), "e8": lambda: txe_feats(cases, 8192, base=False),
+                 **{f"e4_{f}": (lambda f=f: txe_feats(cases, 4096, base=False)[[f]]) for f in TXE_FEATS},
                  "gagree": lambda: gagree_feats(cases),
                  **{f"txx_{e}": (lambda e=e: txx_feats(cases, extra=[e])) for e in TXX_EXTRA},
                  "txx8": lambda: txx_feats(cases, 8192), "txx4": lambda: txx_feats(cases, 4096),
