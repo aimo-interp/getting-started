@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2
 i=0
 while IFS= read -r cfg; do
   [ -z "$cfg" ] && continue
-  ( r=$($PY cvbench/stack.py --repeats "${REPEATS:-10}" $cfg 2>&1 | grep -E " acc=|Error" | tail -1 | cut -c1-360)
+  ( r=$($PY cvbench/stack.py --repeats "${REPEATS:-10}" $cfg 2>&1 | tr '\r' '\n' | grep -E " acc=|Error" | tail -1 | sed 's/^ *//' | cut -c1-360)
     echo "[$cfg] $r" >> "$OUT" ) &
   i=$((i + 1))
   if [ $((i % 4)) -eq 0 ]; then wait; fi
