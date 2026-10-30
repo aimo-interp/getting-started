@@ -1,0 +1,30 @@
+== held-out Spearman on E2H-AMC (ridge / DIM) per layer
+  Qwen/Qwen3.5-4B                          h_last  n=2000 best L21  L8:0.87/0.68  L11:0.87/0.68  L16:0.88/0.71  L21:0.88/0.72  L26:0.88/0.73  L29:0.88/0.72
+  Qwen/Qwen3.5-4B                          h_prob  n=2000 best L21  L8:0.82/0.61  L11:0.83/0.61  L16:0.84/0.60  L21:0.84/0.60  L26:0.84/0.56  L29:0.84/0.55
+  Skywork/Skywork-OR1-Math-7B              h_last  n=500 best L25  L7:0.52/0.25  L10:0.53/0.39  L14:0.57/0.34  L18:0.57/0.40  L22:0.57/0.28  L25:0.57/0.26
+  Skywork/Skywork-OR1-Math-7B              h_prob  n=500 best L18  L7:0.42/0.11  L10:0.39/0.11  L14:0.42/0.12  L18:0.43/0.12  L22:0.42/0.14  L25:0.40/0.19
+  openai/gpt-oss-120b:high                 h_last  n=1000 best L18  L9:0.74/0.30  L13:0.77/0.55  L18:0.77/0.46  L23:0.76/0.27  L29:0.74/0.24  L32:0.74/0.25
+  openai/gpt-oss-120b:high                 h_prob  n=1000 best L23  L9:0.74/0.44  L13:0.76/0.49  L18:0.78/0.57  L23:0.78/0.39  L29:0.77/0.33  L32:0.76/0.32
+Traceback (most recent call last):
+  File "/data/gpfs/projects/punim0478/bansaab/aimo_interp/cvbench/difficulty.py", line 233, in <module>
+    main()
+  File "/data/gpfs/projects/punim0478/bansaab/aimo_interp/cvbench/difficulty.py", line 229, in main
+    analyse()
+  File "/data/gpfs/projects/punim0478/bansaab/aimo_interp/cvbench/difficulty.py", line 186, in analyse
+    ok = np.isfinite(Z["diff_last"].to_numpy())
+                     ~^^^^^^^^^^^^^
+IndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices
+
+== on the 75 cases with E2H states (3 models)
+  diff_last  AUC(harder -> fragile) 0.670
+  diff_prob  AUC(harder -> fragile) 0.607
+  dim_last   AUC(harder -> fragile) 0.685
+  seg probe  AUC 0.699 (out of fold)
+  diff_last  corr with seg score +0.218 (p=0.060); leftover AUC of seg after regressing it out 0.665
+  dim_last   corr with seg score +0.240 (p=0.038); leftover AUC of seg after regressing it out 0.672
+  diff_prob  corr with seg score +0.242 (p=0.036); leftover AUC of seg after regressing it out 0.668
+
+== cosine(difficulty DIM, robustness DIM) at last_prompt, same layer; random baseline = E|cos| of random pairs
+  Qwen/Qwen3.5-4B                          L21 cos -0.574  (random |cos| ~ 0.014; harder-minus-easier vs robust-minus-fragile)
+  Skywork/Skywork-OR1-Math-7B              L25 cos -0.712  (random |cos| ~ 0.011; harder-minus-easier vs robust-minus-fragile)
+  openai/gpt-oss-120b:high                 L13 cos -0.251  (random |cos| ~ 0.016; harder-minus-easier vs robust-minus-fragile)

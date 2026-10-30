@@ -8,8 +8,10 @@ logistic regression trained on 82 labelled small-model cases
 
 The artifact holds one fit per thinking budget. Time is balanced across problems:
 
-* Rollover: the fair share is (time left before the deadline) / (problems not yet seen, out of
-  ``EXPECTED_PROBLEMS``). Time a problem leaves unused raises every later share.
+* Rollover: the time left before the deadline is split over the problems not yet seen (out of
+  ``EXPECTED_PROBLEMS``) in proportion to each model's expected cost (load time + ``COST_TOKENS`` at its decode
+  speed), so slow models (Olmo, gpt-oss-120b) get more seconds and every case reaches about the same thinking
+  budget. Time a problem leaves unused raises every later share.
 * Borrowing: a call may take up to ``BORROW`` fair shares, as long as every later problem keeps
   ``FLOOR`` x the run's base share (``DEADLINE_SECONDS / EXPECTED_PROBLEMS``). Not on the first call,
   which is all any call would see if the state file were lost between problems.
@@ -58,6 +60,9 @@ SPEED_MARGIN = 0.9       # plan on 90% of the expected decode speed
 SPEED_PRIOR = {"Qwen/Qwen3.5-4B": 54.0, "Skywork/Skywork-OR1-Math-7B": 58.0,
                "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": 42.0, "allenai/Olmo-3-7B-Think": 25.0,
                "openai/gpt-oss-120b": 25.0}
+LOAD_PRIOR = {"openai/gpt-oss-120b": 90.0}  # seconds to load, measured on this run once seen
+DEFAULT_LOAD = 25.0
+COST_TOKENS = 8192  # the budget the cost weights are computed at
 # Run state shared across re-imports and processes: one file per unpacked submission directory (a state
 # older than one run counts as a new run). Not keyed by process: each case may run in a fresh process.
 _STATE = Path(tempfile.gettempdir()) / (
@@ -71,7 +76,7 @@ def _load_state() -> dict:
             return state
     except (OSError, ValueError, KeyError, TypeError):
         pass
-    return {"start": time.time(), "seen": 0, "speed": {}}
+    return {"start": time.time(), "seen": 0, "speed": {}, "load": {}}
 
 
 def _save_state() -> None:
@@ -85,17 +90,29 @@ _state = _load_state()
 _save_state()
 
 
-def _call_cap(left: float, n_problems: int, seen: int) -> float:
-    """Seconds this call may use: up to BORROW fair shares, keeping FLOOR base shares for every later problem.
-    No borrowing on the first call: if the state file did not survive between problems, every call would
-    look like the first and borrowing would overrun the deadline; a fair share each is the safe fallback."""
+def _cost(model_key: str, state: dict) -> float:
+    """Expected seconds of one problem of this model: load + COST_TOKENS at its per-stream speed."""
+    speed = state.get("speed", {}).get(model_key) or SPEED_PRIOR.get(model_key) or 40.0
+    load = state.get("load", {}).get(model_key) or LOAD_PRIOR.get(model_key, DEFAULT_LOAD)
+    return load + COST_TOKENS / speed
+
+
+def _fair_share(left: float, n_problems: int, seen: int, cost: float, mean_cost: float) -> float:
+    """Seconds for this call's problems: the time left split in proportion to expected cost, the other
+    remaining problems counted at the mean cost over the trained models."""
     remaining = max(n_problems, EXPECTED_PROBLEMS - seen)
-    share = left / remaining
+    return left * cost * n_problems / (cost * n_problems + (remaining - n_problems) * mean_cost)
+
+
+def _call_cap(left: float, n_problems: int, seen: int, share: float) -> float:
+    """Seconds this call may use: up to BORROW fair shares, keeping FLOOR of an equal share for every later
+    problem. No borrowing on the first call: if the state file did not survive between problems, every call
+    would look like the first and borrowing would overrun the deadline; a fair share each is the safe fallback."""
+    remaining = max(n_problems, EXPECTED_PROBLEMS - seen)
     if seen == 0:
-        return min(share * n_problems, left)
+        return min(share, left)
     later = remaining - n_problems
-    base = DEADLINE_SECONDS / EXPECTED_PROBLEMS
-    return max(min(BORROW * share * n_problems, left - FLOOR * base * later), min(share * n_problems, left))
+    return max(min(BORROW * share, left - FLOOR * (left / remaining) * later), min(share, left))
 
 
 def _target_budget(budgets: list[int], seconds: float, speed: float | None, fair_seconds: float) -> int:
@@ -134,25 +151,31 @@ def are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> lis
     _state = _load_state()  # another import may have advanced it
     now = time.time()
     left = DEADLINE_SECONDS - (now - _state["start"])
-    share = left / max(len(problems), EXPECTED_PROBLEMS - _state["seen"])  # fair seconds per problem
+    speed_key = model_id.split(":")[0]
+    artifact = json.loads(ARTIFACT.read_text())
+    trained = sorted({k.split(":")[0] for k in artifact["fits"][next(iter(artifact["fits"]))]["stats"]})
+    mean_cost = sum(_cost(k, _state) for k in trained) / max(len(trained), 1)
+    share = _fair_share(left, len(problems), _state["seen"], _cost(speed_key, _state), mean_cost)
     first_call = _state["seen"] == 0
-    cap = _call_cap(left, len(problems), _state["seen"])
+    cap = _call_cap(left, len(problems), _state["seen"], share)
     _state["seen"] += len(problems)
     _save_state()
-    call_end, fair_end = now + cap, now + share * len(problems)
-    speed_key = model_id.split(":")[0]
+    call_end, fair_end = now + cap, now + share
     _log(f"{model_id} ({reasoning_effort}): problem {_state['seen']}/{EXPECTED_PROBLEMS}, {left:.0f}s left, "
-         f"fair share {share:.0f}s/problem, cap {cap:.0f}s for {len(problems)}")
+         f"fair share {share:.0f}s (cost weight {_cost(speed_key, _state) / mean_cost:.2f}), cap {cap:.0f}s for {len(problems)}")
     if left < MIN_SECONDS:
         _log(f"{model_id} ({reasoning_effort}): {left:.0f}s left; {len(problems)} problems predicted robust")
         return [True for _ in problems]
-    artifact = json.loads(ARTIFACT.read_text())
     n = artifact["n"]
     budgets = sorted(int(b) for b in artifact["fits"])
+    t_load = time.time()
     try:
         tokenizer, model = load_model(model_id)
     except Exception:
         return [True for _ in problems]
+    _state = _load_state()
+    _state.setdefault("load", {})[speed_key] = time.time() - t_load
+    _save_state()
 
     rows: list[dict | None] = [None] * len(problems)
     budget_of: list[int | None] = [None] * len(problems)

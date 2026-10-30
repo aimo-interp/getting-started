@@ -37,6 +37,9 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   response (``sep2/greedy``, 4k), one pass over prompt + response saves the mean hidden state over the
   first 1/2/3/5/9 of 10 response segments and the last prompt token, at layer fracs ``EFFORT_FRACS``,
   with the mean log sampled length -> ``effort/<model>/<pid>_<type>_<variant>.npz``.
+* ``difficulty``: prompt-only passes over ``difficulty/prompts.jsonl`` (E2H-AMC problems with human
+  difficulty ratings, ``cvbench/difficulty.py --build``), same sites as ``liref``, saved in chunks of 250
+  prompts -> ``difficulty/<model>/chunk_NNN.npz`` (resumable). The difficulty direction is fitted offline.
 * ``liref``: Linear Reasoning Feature contrast set (Hong et al., 2025): prompt-only passes over
   ``liref/contrast.jsonl`` (reasoning questions, GSM8K, vs memory questions, PopQA), saving the last prompt
   token and the mean over the question tokens at every layer -> ``liref/<model>.npz``. The direction
@@ -721,6 +724,36 @@ def run_liref(model, tokenizer, model_id: str) -> None:
     print(f"[liref] {model_id}: wrote {out.name}", flush=True)
 
 
+@torch.no_grad()
+def run_difficulty(model, tokenizer, model_id: str, chunk: int = 250) -> None:
+    """Prompt-site states (last prompt token, question mean, template mean; every layer) over
+    difficulty/prompts.jsonl, in chunks so a 20-min slot can stop and resume."""
+    rows = read_jsonl(DATA / "difficulty" / "prompts.jsonl")
+    out_dir = DATA / "difficulty" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    device = model.get_input_embeddings().weight.device
+    n_chunks = (len(rows) + chunk - 1) // chunk
+    for ci in range(n_chunks):
+        out = out_dir / f"chunk_{ci:03d}.npz"
+        if out.is_file():
+            continue
+        part = rows[ci * chunk:(ci + 1) * chunk]
+        prob, tmpl = pooled(model, tokenizer, [r["text"] for r in part])
+        last = []
+        for r in part:
+            ids = tokenizer(format_problem(tokenizer, r["text"]), add_special_tokens=False, truncation=True,
+                            max_length=2048, return_tensors="pt")["input_ids"].to(device)
+            hs = model(input_ids=ids, output_hidden_states=True, logits_to_keep=1).hidden_states
+            last.append(torch.stack([h[0, -1] for h in hs]).float().cpu().numpy().astype(np.float16))
+            del hs
+        torch.cuda.empty_cache()
+        np.savez_compressed(out, h_last=np.stack(last), h_prob=prob.astype(np.float16), h_tmpl=tmpl.astype(np.float16),
+                            rating=np.array([float(r["rating"]) for r in part]),
+                            pid=np.array([r["id"] for r in part]))
+        print(f"[difficulty] {model_id}: chunk {ci + 1}/{n_chunks} ({len(part)} prompts)", flush=True)
+    print(f"[difficulty] {model_id}: done ({len(rows)} prompts)", flush=True)
+
+
 EFFORT_FRACS = (0.3, 0.5, 0.7)
 EFFORT_WINDOWS = ((0, 1), (0, 2), (0, 3), (0, 5), (0, 9))
 
@@ -849,7 +882,7 @@ def run_hedge(model, tokenizer, model_id: str, todo: dict[str, str], segments: i
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge", "effort", "liref"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge", "effort", "liref", "difficulty"])
     parser.add_argument("--models", nargs="+", default=None, help="Default: every model in the case file.")
     parser.add_argument("--cases", default="cases.jsonl", help="Case file under data/cvbench.")
     parser.add_argument("--batch-size", type=int, default=16)
@@ -895,6 +928,8 @@ def main() -> None:
                         run_noise(model, tokenizer, model_id, todo)
                     elif stage == "liref":
                         run_liref(model, tokenizer, model_id)
+                    elif stage == "difficulty":
+                        run_difficulty(model, tokenizer, model_id)
                     elif stage == "effort":
                         run_effort(model, tokenizer, model_id, args.segments)
                     elif stage == "hedge":

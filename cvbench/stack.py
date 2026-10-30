@@ -73,6 +73,18 @@ def ttraj_feats(cases, budget=16384):
     return pd.DataFrame(rows, index=cases.index)[traj.FEATS]
 
 
+TXP_FEATS = ["pre_answer_prov", "anchor", "agree_prov", "length"]   # unfinished samples -> provisional answer
+
+
+def txp_feats(cases, budget=16384, n=8):
+    sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
+    import train as tp
+    tcases = {(c["model_id"], c["group"]): c for c in tp.load_cases(oss=True)}
+    rows = [tp.case_features(tcases[(c.model_id, c.group)], budget, n) if (c.model_id, c.group) in tcases else {}
+            for c in cases.itertuples()]
+    return pd.DataFrame(rows, index=cases.index)[TXP_FEATS]
+
+
 def tx_feats(cases, budget=16384, n=8):
     sys.path.insert(0, str(ROOT / "solutions" / "transcript-probe" / "research"))
     import train as tp
@@ -240,6 +252,9 @@ def make_blocks(cases, names, args):
                                               index=cases.index)[traj.FEATS],
                  "ttraj": lambda: ttraj_feats(cases),
                  "tx": lambda: tx_feats(cases),
+                 "tx4": lambda: tx_feats(cases, 4096), "tx8": lambda: tx_feats(cases, 8192),
+                 "txp": lambda: txp_feats(cases), "txp4": lambda: txp_feats(cases, 4096),
+                 "txp8": lambda: txp_feats(cases, 8192), "txp2": lambda: txp_feats(cases, 2048),
                  "lb": lambda: lb_feats(cases),
                  "pert": lambda: pert_feats(cases),
                  "prob": lambda: prob_feats(cases),
@@ -249,6 +264,10 @@ def make_blocks(cases, names, args):
                  "liref_last": lambda: liref_feats(cases, args.frac, ("liref_last",)),
                  "liref_auto": lambda: liref_feats(cases, None, ("liref_last",)),  # layer by contrast d' per model
                  "liref_cot": lambda: liref_feats(cases, args.frac, ("liref_cot", "liref_cot2")),
+                 "diff": lambda: __import__("difficulty").diff_feats(cases, ("diff_last",)),      # E2H ridge @ last prompt token
+                 "diff_prob": lambda: __import__("difficulty").diff_feats(cases, ("diff_prob",)),
+                 "dim": lambda: __import__("difficulty").diff_feats(cases, ("dim_last",)),         # hardest-minus-easiest projection
+                 "diff_all": lambda: __import__("difficulty").diff_feats(cases),
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()
             Z = cv.zscore_within_model(F, cases)

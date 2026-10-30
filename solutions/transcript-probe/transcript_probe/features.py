@@ -84,18 +84,43 @@ def reasoning_of(text: str) -> str:
     return text
 
 
+PROV_TAIL_CHARS = 3000
+_PROV = re.compile(r"(?:=|\bis|\banswer(?:\s+is|:)?)\s*\$?\\?(?:boxed\{)?(-?\d{1,8})\}?\$?(?![\^.\d])")
+
+
+def provisional_answer(text: str, in_problem: set[str]) -> int | None:
+    """What an unfinished sample is leaning to: the most repeated integer claimed (``= N``, ``is N``,
+    ``answer N``, ``\\boxed{N}``) in the last PROV_TAIL_CHARS of its reasoning, ties to the latest; numbers
+    copied from the problem do not count. None when it has claimed nothing yet."""
+    think = reasoning_of(text)
+    tail = think[-PROV_TAIL_CHARS:]
+    claims = [m.group(1) for m in _PROV.finditer(tail) if m.group(1).lstrip("-") not in in_problem]
+    if not claims:
+        return None
+    counts = Counter(claims)
+    best = max(counts.values())
+    return int(next(c for c in reversed(claims) if counts[c] == best))
+
+
 def transcript_features(problem: str, texts: list[str], finished: list[bool]) -> dict:
-    """Features of n samples on the original problem (see the module docstring)."""
+    """Features of n samples on the original problem (see the module docstring). ``*_prov``: the same
+    agreement and pre-answer length with unfinished samples represented by their provisional answer."""
     answers = [extract_answer(t) if done else None for t, done in zip(texts, finished)]
     in_problem = set(re.findall(r"\d+", problem))
-    pre, anchors = [], []
-    for text, answer in zip(texts, answers):
+    prov = [a if a is not None else provisional_answer(t, in_problem) for t, a in zip(texts, answers)]
+    pre, pre_prov, anchors = [], [], []
+    for text, answer, p in zip(texts, answers, prov):
         think = reasoning_of(text)
         hit = re.search(r"(?<!\d)%s(?!\d)" % re.escape(str(answer)), think) if answer is not None else None
         pre.append(math.log((hit.start() if hit else len(think)) + 1))
+        hit_p = re.search(r"(?<!\d)%s(?!\d)" % re.escape(str(p)), think) if p is not None else None
+        pre_prov.append(math.log((hit_p.start() if hit_p else len(think)) + 1))
         head = [m.group(1) for m in _ANCHOR.finditer(text[:ANCHOR_CHARS]) if m.group(1) not in in_problem]
         anchors.append(Counter(head).most_common(1)[0][1] if head else 0)
     given = [a for a in answers if a is not None]
     agree = Counter(given).most_common(1)[0][1] / len(answers) if given else 0.0
+    given_p = [a for a in prov if a is not None]
+    agree_prov = Counter(given_p).most_common(1)[0][1] / len(prov) if given_p else 0.0
     return {"pre_answer_logchars": mean(pre), "anchor": float(mean(anchors)), "agree": agree,
-            "answers": answers}
+            "pre_answer_prov": mean(pre_prov), "agree_prov": agree_prov, "answered": mean(a is not None for a in answers),
+            "answers": answers, "provisional": prov}
