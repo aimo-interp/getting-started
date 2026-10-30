@@ -11,3 +11,4 @@ txp2                         acc=0.6856 auc=0.6957 | Qwen3.5-4B=0.658; Skywork-O
 --- 16k
 seg+traj+txp                 acc=0.8068 auc=0.7723 | Qwen3.5-4B=0.883; Skywork-OR1-Math-7B=0.819; Olmo-3-7B-Think=0.900; DeepSeek-R1-0528-Qwen3-8B=0.592; gpt-oss-120b:high=0.727; gpt-oss-120b:low=0.714; gpt-oss-120b:medium=0.947
 txp                          acc=0.7712 auc=0.8301 | Qwen3.5-4B=0.792; Skywork-OR1-Math-7B=0.738; Olmo-3-7B-Think=0.989; DeepSeek-R1-0528-Qwen3-8B=0.683; gpt-oss-120b:high=0.800; gpt-oss-120b:low=0.571; gpt-oss-120b:medium=0.867
+seg+traj+tx                  acc=0.8119 auc=0.7882 | Qwen3.5-4B=0.875; Skywork-OR1-Math-7B=0.817; Olmo-3-7B-Think=0.933; DeepSeek-R1-0528-Qwen3-8B=0.600; gpt-oss-120b:high=0.733; gpt-oss-120b:low=0.714; gpt-oss-120b:medium=0.967
