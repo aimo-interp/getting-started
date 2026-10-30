@@ -138,7 +138,7 @@ def main() -> None:
              "traj": {"end": traj.END, "frac": FRAC, **{k: traj_stats[m][k] for k in ("median", "mean", "sd")}},
              "tx": {str(b): {k: tx_stats[b][m][k] for k in ("median", "mean", "sd")} for b in BUDGETS}}
         if m in seg_entries:
-            e.update({k: seg_entries[m][k] for k in ("layer", "n_hidden_states", "windows")})
+            e.update({k: seg_entries[m][k] for k in ("layer", "n_hidden_states", "windows", "seg_weight")})
         entries[m] = e
     art = {"schema_version": 1, "head": "stack",
            "generation": {"max_prompt_length": 2048, "greedy_tokens": 4096, "n_samples": N_SAMPLES, "budgets": BUDGETS},
