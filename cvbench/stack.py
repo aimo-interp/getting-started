@@ -38,7 +38,7 @@ import traj  # noqa: E402
 import whitebox as wb  # noqa: E402
 
 ROOT = cv.ROOT
-C = 0.3
+C = 0.1
 TWINDOWS = ((0, 5), (5, 9))
 TX_VAR = False  # tx: add agree*(1-agree)
 
@@ -110,6 +110,14 @@ def pert_feats(cases):
                         columns=["pert_keep_mean", "pert_keep_min"])
 
 
+def prob_feats(cases):
+    """Problem text only: length, how many numbers, how much LaTeX."""
+    import re
+    P = cases.problem
+    return pd.DataFrame({"p_logchars": np.log(P.str.len()), "p_numbers": P.map(lambda t: len(re.findall(r"\d+", t))),
+                         "p_dollars": P.str.count(r"\$")}, index=cases.index)
+
+
 def lb_feats(cases):
     import lookback
     _, S = lookback.load(cases)
@@ -148,6 +156,7 @@ def make_blocks(cases, names, args):
                  "tx": lambda: tx_feats(cases),
                  "lb": lambda: lb_feats(cases),
                  "pert": lambda: pert_feats(cases),
+                 "prob": lambda: prob_feats(cases),
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()
             Z = cv.zscore_within_model(F, cases)

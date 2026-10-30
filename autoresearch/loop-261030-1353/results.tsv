@@ -9,3 +9,5 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 6	2026-10-30T13:59:42+11:00	-	0.8013	-0.0034	-	-	discard	tx + agree*(1-agree) (mid agreement 73% fragile, but no gain)
 7	2026-10-30T14:00:53+11:00	-	0.8162	-	-	-	discard	self-perturbation answer keep-rate (8x16k on own variants), scored train-main-v2: tx alone .824/AUC .892, tx+pert .816 -> no added signal
 8	2026-10-30T14:01:16+11:00	-	0.7992	-0.0055	-	-	discard	per-model gate among tx|seg+traj|seg+traj+tx by inner CV (picks unstable on small models)
+9	2026-10-30T14:02:19+11:00	-	0.7894	-0.0153	-	-	discard	problem-text feats (length, #numbers, LaTeX) alone AUC .58
+10	2026-10-30T14:04:08+11:00	-	0.8153	+0.0106	-	-	keep	logistic C 0.3->0.1 for seg+traj+tx (C=1 .784, C=.03 .771; picked from 4 values, mild tuning); organiser-only .833
