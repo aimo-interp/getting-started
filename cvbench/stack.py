@@ -420,10 +420,76 @@ def sign_safe(Z, models, y, tr, min_gap=0.0):
     return Z
 
 
+def dim_variant_scores(acts, models, y, tr, site, frac, pcs=0, boot=0, seed=0):
+    """Diff-in-means probe score (as wb.diffmean_scores_layer) with optional denoising (loop 2026-10-31):
+    ``pcs``: remove the top-k principal components of the training rows first (shared problem variance);
+    ``boot``: average the unit direction over that many bootstrap resamples of the training rows."""
+    rng = np.random.default_rng(seed)
+    feat = np.zeros(len(acts))
+    for m in np.unique(models):
+        idx = np.where(models == m)[0]
+        tr_m = np.intersect1d(idx, tr)
+        y_tr = y[tr_m]
+        if y_tr.all() or (~y_tr).all():
+            continue
+        L = acts[idx[0]][site].shape[0]
+        layer = wb.layer_of(L, frac)
+        H = np.stack([acts[i][site][layer] for i in idx]).astype(np.float64)
+        H_tr = np.stack([acts[i][site][layer] for i in tr_m]).astype(np.float64)
+        mu = H_tr.mean(0)
+        Hc, Hc_tr = H - mu, H_tr - mu
+        if pcs:
+            V = np.linalg.svd(Hc_tr, full_matrices=False)[2][:pcs]
+            Hc, Hc_tr = Hc - Hc @ V.T @ V, Hc_tr - Hc_tr @ V.T @ V
+
+        def direction(rows):
+            d = Hc_tr[rows][y_tr[rows]].mean(0) - Hc_tr[rows][~y_tr[rows]].mean(0)
+            return d / (np.linalg.norm(d) + 1e-8)
+        if boot:
+            ds = []
+            for _ in range(boot):
+                r = rng.integers(0, len(tr_m), len(tr_m))
+                if y_tr[r].all() or (~y_tr[r]).all():
+                    continue
+                ds.append(direction(r))
+            d = np.mean(ds, 0) if ds else direction(np.arange(len(tr_m)))
+            d /= np.linalg.norm(d) + 1e-8
+        else:
+            d = direction(np.arange(len(tr_m)))
+        proj, proj_tr = Hc @ d, Hc_tr @ d
+        feat[idx] = proj / (proj_tr.std() + 1e-8)
+    return feat[:, None]
+
+
+def pc_scores(acts, models, tr, loglen, sites=("seg_0_5", "seg_5_9"), frac=0.5, k=1):
+    """Label-free (loop 2026-10-31): per model and window, projection on the top-k principal components of the
+    training rows, each oriented so it correlates positively with the greedy trace's log length (no labels)."""
+    out = []
+    for site in sites:
+        F = np.zeros((len(acts), k))
+        for m in np.unique(models):
+            idx = np.where(models == m)[0]
+            tr_m = np.intersect1d(idx, tr)
+            L = acts[idx[0]][site].shape[0]
+            layer = wb.layer_of(L, frac)
+            H = np.stack([acts[i][site][layer] for i in idx]).astype(np.float64)
+            H_tr = np.stack([acts[i][site][layer] for i in tr_m]).astype(np.float64)
+            mu = H_tr.mean(0)
+            V = np.linalg.svd(H_tr - mu, full_matrices=False)[2][:k]
+            P, P_tr = (H - mu) @ V.T, (H_tr - mu) @ V.T
+            for j in range(k):
+                r = np.corrcoef(P_tr[:, j], loglen[tr_m])[0, 1] if loglen[tr_m].std() > 0 else 0.0
+                sgn = 1.0 if not np.isfinite(r) or r == 0 else float(np.sign(r))
+                F[idx, j] = sgn * P[:, j] / (P_tr[:, j].std() + 1e-8)
+        out.append(F)
+    return np.concatenate(out, 1)
+
+
 SAFE_MIN_AUC = 0.6
 
 
-def safe_seg_scores(acts, models, y, groups, tr, sites=("seg_0_5", "seg_5_9"), frac=0.5, min_auc=None, soft=False):
+def safe_seg_scores(acts, models, y, groups, tr, sites=("seg_0_5", "seg_5_9"), frac=0.5, min_auc=None, soft=False,
+                    scorer=None):
     """seg probe scores with a per-model reliability check (loop 2026-10-31): for each model and window, the
     out-of-fold AUC of the DIM score on that model's *training* rows (grouped 5-fold, 2 seeds). Windows whose
     inner AUC is below ``min_auc`` score 0 for that model (no information) instead of a possibly inverted
@@ -431,11 +497,12 @@ def safe_seg_scores(acts, models, y, groups, tr, sites=("seg_0_5", "seg_5_9"), f
     from sklearn.metrics import roc_auc_score
     from sklearn.model_selection import StratifiedGroupKFold
     min_auc = SAFE_MIN_AUC if min_auc is None else min_auc
-    full = np.concatenate([wb.diffmean_scores(acts, models, y, tr, None, s, frac) for s in sites], 1)
+    score = scorer or (lambda trr, s: wb.diffmean_scores(acts, models, y, trr, None, s, frac))
+    full = np.concatenate([score(tr, s) for s in sites], 1)
     inner = np.zeros((len(y), len(sites)))
     for seed in range(2):
         for itr, ite in StratifiedGroupKFold(5, shuffle=True, random_state=seed).split(tr, y[tr], groups[tr]):
-            sc = np.concatenate([wb.diffmean_scores(acts, models, y, tr[itr], None, s, frac) for s in sites], 1)
+            sc = np.concatenate([score(tr[itr], s) for s in sites], 1)
             inner[tr[ite]] += sc[tr[ite]] / 2
     for m in np.unique(models):
         idx = np.where(models == m)[0]
@@ -502,6 +569,24 @@ def make_blocks(cases, names, args):
             D = -np.asarray(cv.zscore_within_model(difficulty.diff_feats(cases, ("diff_last",)), cases), dtype=float)[:, 0]
             out[name] = lambda tr, acts=acts, D=D: np.where(
                 (safe_seg_scores(acts, models, y, groups, tr, frac=args.frac) == 0).all(1), D, 0.0)[:, None]
+        elif name.startswith(("segpc", "segboot")):  # e.g. segpc1, segpc3, segboot20, gated per model
+            acts = wb.load_acts(cases, cv)
+            k = int(name.lstrip("segpcbot"))
+            kw = {"pcs": k} if name.startswith("segpc") else {"boot": k}
+            out[name] = lambda tr, acts=acts, kw=kw: safe_seg_scores(
+                acts, models, y, groups, tr, frac=args.frac,
+                scorer=lambda trr, s: dim_variant_scores(acts, models, y, trr, s, args.frac, **kw))
+        elif name in ("pc1", "pc2", "pc3"):
+            acts = wb.load_acts(cases, cv)
+            import json as _json
+            n_tok = {}
+            for f in (cv.DATA / "greedy").glob("*.jsonl"):
+                for line in open(f):
+                    r = _json.loads(line)
+                    n_tok[(r["model_id"], r["group"])] = r["generation_num_tokens"]
+            loglen = np.log1p(np.array([n_tok.get((c.model_id, c.group), 4096) for c in cases.itertuples()], float))
+            kk = int(name[2])
+            out[name] = lambda tr, acts=acts, loglen=loglen, kk=kk: pc_scores(acts, models, tr, loglen, frac=args.frac, k=kk)
         elif name == "seg1":  # one window 0-9 (fewer parameters)
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)

@@ -16,3 +16,5 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 13	2026-10-31T02:59:50+11:00	-	0.8085	-0.011	-	-	discard	per-model sign check on traj/tx features
 14	2026-10-31T03:15:10+11:00	-	0.8216	+0.002	-	-	discard	difficulty fills gated-off seg slots (diff_fill/seg_fill): noise, worse at 4k/8k
 15	2026-10-31T03:15:10+11:00	-	0.8055	+0.005	-	-	discard	early-trace features at 4k (anchor agreement/churn, hesitation): replace tx4 .800->.806, no gain on top of tx
+16	2026-10-31T03:44:36+11:00	-	0.8148	-0.004	-	-	discard	seg: remove top-k PCs before DIM (k=1-5: .78-.79, top PC carries signal); bootstrap-averaged direction (.815, noise)
+17	2026-10-31T04:11:10+11:00	-	0.8174	-0.002	-	-	discard	label-free top-PC projection oriented by greedy length (alone AUC .66; flat on stack)
