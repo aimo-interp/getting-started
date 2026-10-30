@@ -323,6 +323,38 @@ def lda_scores(acts, models, y, tr, site, frac, k=None):
     return feat[:, None]
 
 
+def pooled_seg_scores(acts, models, y, tr, sites=("seg_0_5", "seg_5_9"), frac=0.5):
+    """seg probe with the DIM direction fitted per *base* model (gpt-oss efforts pooled: one model, one hidden
+    space, 37 cases instead of 7-15), centred and scaled per effort on its own training rows."""
+    base = np.array([m.split(":")[0] for m in models])
+    out = np.zeros((len(y), len(sites)))
+    for j, site in enumerate(sites):
+        for b in np.unique(base):
+            idx = np.where(base == b)[0]
+            tr_b = np.intersect1d(idx, tr)
+            yb = y[tr_b]
+            if yb.all() or (~yb).all():
+                continue
+            L = acts[idx[0]][site].shape[0]
+            layer = wb.layer_of(L, frac)
+            # within-effort centring before pooling, so the direction is not the effort offset
+            H = np.stack([acts[i][site][layer] for i in idx]).astype(np.float64)
+            Hc = H.copy()
+            for m in np.unique(models[idx]):
+                k = models[idx] == m
+                trk = np.isin(idx, tr) & k
+                Hc[k] -= H[trk].mean(0) if trk.any() else H[k].mean(0)
+            trmask = np.isin(idx, tr)
+            d = Hc[trmask & y[idx]].mean(0) - Hc[trmask & ~y[idx]].mean(0)
+            d /= np.linalg.norm(d) + 1e-8
+            proj = Hc @ d
+            for m in np.unique(models[idx]):
+                k = models[idx] == m
+                sd = proj[k & trmask].std() if (k & trmask).sum() > 1 else proj[k].std()
+                out[idx[k], j] = proj[k] / (sd + 1e-8)
+    return out
+
+
 SAFE_MIN_AUC = 0.6
 
 
@@ -382,6 +414,9 @@ def make_blocks(cases, names, args):
             kw = {"seg_safe": {}, "seg_soft": {"soft": True}, "seg_safe5": {"min_auc": 0.5},
                   "seg_safe7": {"min_auc": 0.7}}[name]
             out[name] = lambda tr, acts=acts, kw=kw: safe_seg_scores(acts, models, y, groups, tr, frac=args.frac, **kw)
+        elif name == "seg_pool":
+            acts = wb.load_acts(cases, cv)
+            out[name] = lambda tr, acts=acts: pooled_seg_scores(acts, models, y, tr, frac=args.frac)
         elif name == "seg1":  # one window 0-9 (fewer parameters)
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)

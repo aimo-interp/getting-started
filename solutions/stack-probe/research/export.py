@@ -3,7 +3,8 @@
 
 Blocks, each the one cvbench cross-validated (``cvbench/stack.py``):
 
-* ``seg``: diff-in-means probe scores on the greedy 4k trace's segments 0-5 and 5-9 (layer frac 0.5);
+* ``seg``: diff-in-means probe scores on the greedy 4k trace's segments 0-5 and 5-9 (layer frac 0.5), each window
+  zeroed for models where its inner cross-validated AUC is below 0.6;
 * ``traj``: trajectory geometry (step_mean, norm_slope) of the same trace;
 * ``tx``: transcript features of 8 sampled traces (pre_answer_logchars, anchor, agree, length), one fit per
   thinking budget (2k..16k) since the leaderboard cannot always afford 16k.
@@ -79,8 +80,19 @@ def main() -> None:
     acts = wb.load_acts(cases, cv)
     print(f"{len(cases)} cases, {len(set(models))} models")
 
-    # blocks on all cases
+    # blocks on all cases. seg windows are gated per model by their inner out-of-fold AUC (stack.safe_seg_scores):
+    # a window whose cross-validated AUC on that model is below SAFE_MIN_AUC scores 0 (an inverted direction on
+    # few fragile cases otherwise misleads the shared logistic).
     seg_entries, F_seg = th.diffmean_entries(cases, acts, y, SEG_SITES)
+    groups = cases.group.to_numpy()
+    all_rows = np.arange(len(y))
+    ones = np.concatenate([wb.diffmean_scores(acts, models, y, all_rows, None, s, FRAC) for s in SEG_SITES], 1)
+    gated = stack.safe_seg_scores(acts, models, y, groups, all_rows, SEG_SITES, FRAC)
+    for m, e in seg_entries.items():
+        k = np.where(models == m)[0][0]
+        e["seg_weight"] = [float(abs(ones[k, j]) > 0 and abs(gated[k, j]) > 0) for j in range(len(SEG_SITES))]
+        print(f"  seg gate {m:40s} {e['seg_weight']}")
+    F_seg = gated
     T = pd.DataFrame([traj.traj_features(s) for s in traj.load_segs(cases)], index=cases.index)[traj.FEATS]
     traj_stats, Z_traj = th.zscore_entries(T, cases)
     tx_stats, Z_tx = {}, {}
@@ -93,7 +105,7 @@ def main() -> None:
         parts = {"seg": F_seg, "traj": Z_traj, "tx": Z_tx[budget]}
         return np.concatenate([parts[bk] for bk in OPTIONS[option]], 1)
 
-    seg_block = lambda tr: np.concatenate([wb.diffmean_scores(acts, models, y, tr, None, s, FRAC) for s in SEG_SITES], 1)
+    seg_block = lambda tr: stack.safe_seg_scores(acts, models, y, groups, tr, SEG_SITES, FRAC)
     blocks = {"seg": seg_block, "traj": lambda tr: Z_traj, "tx": lambda tr: Z_tx[16384]}
     print("== per-model option (inner CV, seg probe fitted per fold, tx at 16384)")
     chosen = choose_options(cases, blocks, y)

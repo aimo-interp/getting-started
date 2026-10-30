@@ -175,7 +175,8 @@ def trace_blocks(art, entry, model, tokenizer, problem: str, greedy_text: str) -
         return out
     s = hidden_signals(model, tokenizer, problem, greedy_text, art["segments"], art["generation"]["greedy_tokens"])
     if "windows" in entry:
-        out["seg"] = heads._diffmean(art, entry, s)
+        w = entry.get("seg_weight", [1.0] * len(entry["windows"]))
+        out["seg"] = [v * wj for v, wj in zip(heads._diffmean(art, entry, s), w)]
     seg = s.get("seg_mean")
     t = entry["traj"]
     if seg is None:
