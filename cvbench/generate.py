@@ -18,6 +18,20 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
   each of ``--segments`` equal token segments of the greedy response
   (``seg_mean`` [S, L+1, d]), so any contiguous pooling window over the CoT can be
   scored offline (``whitebox.py seg_probe``).
+* ``tsegs``: ``segs`` over the transcript probe's 8 sampled traces per case (T=1, up to 16k tokens:
+  ``data/anchors/**/screen.jsonl``, ``data/transcript_probe/oss/screen_<effort>.jsonl``) instead of the
+  4k greedy one, cut at each of ``--tsegs-budgets`` -> ``tsegs/<model>/<group>.npz``
+  (``seg_mean_<B>`` [samples, S, L+1, d]), so seg_probe and the transcript features can be scored on
+  the same trace.
+* ``lookback``: Lookback Lens attention features over the greedy response (prompt vs response attention
+  per layer and head, averaged within ``--segments`` segments) -> ``lookback/<model>/<group>.npz``.
+* ``noise``: latent-noise sensitivity: log p of the model's own budget-forced answer after its greedy trace,
+  clean and with relative Gaussian noise on the mid-layer residual stream over the CoT -> ``noise/<model>/<group>.npz``.
+* ``hedge``: one pass per case over the greedy trace for two methods. (A) hedge-localised states: at every
+  layer, the mean hidden state at hedge tokens ("wait", "hmm", "actually", "let me double-check", ...), over
+  the ``HEDGE_PRE`` tokens before each hedge and the ``HEDGE_POST`` tokens from it on. (B) early-answer
+  commitment: the model's own budget-forced answer A after the full trace, then log p(A) when the trace is
+  cut at each of ``--segments`` boundaries and closed with the same forcing suffix -> ``hedge/<model>/<group>.npz``.
 * ``sep``: training data for the semantic-entropy probe. For every labelgen prompt
   of the model (originals and perturbed variants, ``data/labelgen/samples``), the
   last-prompt-token hidden state at every layer (same template as ``acts``) and the
@@ -216,6 +230,8 @@ INTROSPECT = {
 
 def no_think_prefix(prompt: str, tokenizer) -> str:
     """Close the thinking block so the next token is the answer itself (no chain of thought)."""
+    if "<|channel|>" in tokenizer.get_vocab():  # gpt-oss (harmony): empty analysis, then the final channel
+        return prompt + "<|channel|>analysis<|message|><|end|><|start|>assistant<|channel|>final<|message|>"
     if prompt.rstrip().endswith("<think>"):
         return prompt.rstrip() + "\n\n</think>\n\n"
     return prompt + "<think>\n\n</think>\n\n" if "<think>" in tokenizer.get_vocab() else prompt
@@ -377,15 +393,383 @@ def run_sample(model, tokenizer, model_id: str, todo: dict[str, str], n: int, bu
               f"{time.time() - start:.0f}s", flush=True)
 
 
+SCREENS = {"Qwen/Qwen3.5-4B": ROOT / "data" / "anchors",
+           **{m: ROOT / "data" / "anchors" / safe(m) for m in MODELS[1:]},
+           **{f"openai/gpt-oss-120b:{e}": ROOT / "data" / "transcript_probe" / "oss" / f"screen_{e}.jsonl"
+              for e in ("low", "medium", "high")}}
+SOLVE_SUFFIX = "\n\nPlease reason step by step, and put your final answer within \\boxed{}."  # datagen/common.py
+HARMONY_FINAL = "<|end|><|start|>assistant<|channel|>final<|message|>"
+
+
+def screen_texts(model_id: str) -> dict[str, dict]:
+    """The transcript probe's training samples (8 per original problem, T=1, 16k): group -> screen row."""
+    path = SCREENS[model_id]
+    path = path / "screen.jsonl" if path.is_dir() else path
+    return {r["group"]: r for r in read_jsonl(path) if r["variant"] == "X"}
+
+
+def screen_continuation(tokenizer, problem: str, text: str) -> tuple[str, str]:
+    """Rebuild (prompt, continuation) as the sample was generated: the model's chat template on problem +
+    SOLVE_SUFFIX (vLLM, ``solutions/anchors/resample.py``), or for gpt-oss the prompt opened into the analysis
+    channel (OpenRouter, ``thought_anchors/resample.py``), whose saved text lost its harmony markers."""
+    text = text.replace("Ġ", " ").replace("Ċ", "\n") if "Ġ" in text else text  # DeepSeek's byte-level pieces
+    prompt = tokenizer.apply_chat_template([{"role": "user", "content": problem + SOLVE_SUFFIX}],
+                                           tokenize=False, add_generation_prompt=True)
+    if "<|channel|>" in tokenizer.get_vocab():
+        prompt += "<|channel|>analysis<|message|>"
+        text = text.replace("assistantfinal", HARMONY_FINAL, 1)
+    return prompt, text
+
+
+@torch.no_grad()
+def chunked_hidden_states(model, ids: list[int], device, chunk: int = 1024) -> tuple:
+    """``model(..., output_hidden_states=True).hidden_states`` computed ``chunk`` tokens at a time over a KV
+    cache: eager attention (gpt-oss) otherwise builds one [heads, seq, seq] score tensor, which does not fit
+    next to the 120B weights at 16k tokens."""
+    from transformers import DynamicCache
+    cache = DynamicCache(config=model.config)
+    parts = []
+    for start in range(0, len(ids), chunk):
+        piece = torch.tensor([ids[start:start + chunk]], device=device)
+        pos = torch.arange(start, start + piece.shape[1], device=device)
+        out = model(input_ids=piece, past_key_values=cache, use_cache=True, cache_position=pos,
+                    position_ids=pos[None], output_hidden_states=True, logits_to_keep=1)
+        parts.append(out.hidden_states)
+        del out
+    return tuple(torch.cat([p[layer] for p in parts], 1) for layer in range(len(parts[0])))
+
+
+@torch.no_grad()
+def run_tsegs(model, tokenizer, model_id: str, todo: dict[str, str], segments: int, budgets: list[int]) -> None:
+    """``segs`` over the transcript probe's sampled 16k traces instead of the 4k greedy one: per sample and
+    budget B, the per-layer mean over each of ``segments`` equal token segments of the first B response tokens
+    (one forward pass at the largest budget; causal, so shorter cuts reuse its prefix)."""
+    out_dir = DATA / "tsegs" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    screens = screen_texts(model_id)
+    groups = [g for g in todo if g in screens and not (out_dir / f"{g}.npz").is_file()]
+    print(f"[tsegs] {model_id}: {len(groups)} to do ({sum(g not in screens for g in todo)} without samples)",
+          flush=True)
+    device = model.get_input_embeddings().weight.device
+    for k, g in enumerate(groups, 1):
+        start = time.time()
+        segs = {b: [] for b in budgets}
+        n_resp = []
+        for text in screens[g]["texts"]:
+            prompt, text = screen_continuation(tokenizer, todo[g], text)
+            prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
+            response_ids = tokenizer(text, add_special_tokens=False)["input_ids"][:max(budgets)]
+            p, n = len(prompt_ids), len(response_ids)
+            n_resp.append(n)
+            if n < segments:  # too short to segment: NaN, the loader falls back
+                for b in budgets:
+                    segs[b].append(None)
+                continue
+            hs = chunked_hidden_states(model, prompt_ids + response_ids, device)
+            for b in budgets:
+                bounds = np.linspace(0, min(n, b), segments + 1).round().astype(int)
+                segs[b].append(torch.stack([torch.stack([h[0, p + a:p + c].float().mean(0)
+                                                         for a, c in zip(bounds[:-1], bounds[1:])])
+                                            for h in hs], 1).cpu().numpy().astype(np.float16))  # [S, L+1, d]
+            del hs
+            torch.cuda.empty_cache()
+        shape = next((s.shape for s in segs[budgets[0]] if s is not None), None)
+        if shape is None:
+            print(f"  {k}/{len(groups)} {g}: no sample long enough, skipped", flush=True)
+            continue
+        fill = lambda rows: np.stack([r if r is not None else np.full(shape, np.nan, np.float16) for r in rows])
+        np.savez_compressed(out_dir / f"{g}.npz", n_resp=np.array(n_resp),
+                            finish=np.array(screens[g]["finish"]), budgets=np.array(budgets),
+                            **{f"seg_mean_{b}": fill(segs[b]) for b in budgets})  # [samples, S, L+1, d]
+        print(f"  {k}/{len(groups)} {g}: {len(n_resp)} samples, max {max(n_resp)} tokens, "
+              f"{time.time() - start:.0f}s", flush=True)
+
+
+@torch.no_grad()
+def run_lookback(model, tokenizer, model_id: str, todo: dict[str, str], segments: int) -> None:
+    """Lookback Lens features (Chuang et al., 2024) over the greedy response, per attention layer and head,
+    averaged within each of ``segments`` equal token segments. Per response token: mean attention on the
+    prompt (position 0, the attention sink, excluded) over mean attention on the response so far
+    (``lb_ratio``); total attention on the prompt (``ctx_mass``), on the sink (``sink``) and on prompt tokens
+    that contain a digit (``num_mass``). Eager attention, ``output_attentions`` in chunks over a KV cache.
+    Layers without attention weights (Qwen3.5 linear attention) are dropped; ``layers`` keeps the indices."""
+    out_dir = DATA / "lookback" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    greedy = {r["group"]: r for r in read_jsonl(DATA / "greedy" / f"{safe(model_id)}.jsonl")}
+    groups = [g for g in todo if not (out_dir / f"{g}.npz").is_file()]
+    print(f"[lookback] {model_id}: {len(groups)} to do", flush=True)
+    from transformers import DynamicCache
+    device = model.get_input_embeddings().weight.device
+    previous = model.config._attn_implementation
+    model.set_attn_implementation("eager")
+    text_config = getattr(model.config, "text_config", model.config)
+    heads, types = text_config.num_attention_heads, list(getattr(text_config, "layer_types", None) or [])
+    attn_layers = [i for i, t in enumerate(types) if "linear" not in t] if types else None
+    # A config-built cache keeps only the last `window` keys on sliding layers, so key index != position;
+    # a plain cache keeps every key (the sliding mask still comes from the config). Linear-attention models
+    # (Qwen3.5) need the config-built cache for their recurrent state and have no sliding layers.
+    sliding = any("sliding" in t for t in types)
+    chunk = 128 if heads >= 64 else 256
+    try:
+        for k, g in enumerate(groups, 1):
+            start = time.time()
+            prompt = format_problem(tokenizer, todo[g])
+            prompt_ids = tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=2048)["input_ids"]
+            response = greedy.get(g, {}).get("generated_text", "")
+            response_ids = tokenizer(response, add_special_tokens=False)["input_ids"][:4096]
+            p, n = len(prompt_ids), len(response_ids)
+            if n < segments:
+                print(f"  {k}/{len(groups)} {g}: only {n} resp tokens, skipped", flush=True)
+                continue
+            ids = prompt_ids + response_ids
+            digit = torch.tensor([any(ch.isdigit() for ch in tokenizer.decode([t])) for t in prompt_ids], device=device)
+            digit[0] = False
+            seg_of = torch.as_tensor(np.minimum(np.arange(n) * segments // n, segments - 1), device=device)
+            cache = DynamicCache() if sliding else DynamicCache(config=model.config)
+            sums, layers = None, None
+            for a in range(0, len(ids), chunk):
+                piece = torch.tensor([ids[a:a + chunk]], device=device)
+                pos = torch.arange(a, a + piece.shape[1], device=device)
+                out = model(input_ids=piece, past_key_values=cache, use_cache=True, cache_position=pos,
+                            position_ids=pos[None], output_attentions=True, logits_to_keep=1)
+                keep = [(i, att) for i, att in enumerate(out.attentions) if att is not None]
+                if layers is None:  # attentions either span every layer (None where absent) or attention layers only
+                    by_index = len(out.attentions) == text_config.num_hidden_layers or attn_layers is None
+                    layers = [i if by_index else attn_layers[i] for i, _ in keep]
+                    sums = torch.zeros(4, segments, len(layers), heads, device=device, dtype=torch.float64)
+                q = pos >= p  # response queries in this chunk
+                if q.any():
+                    qpos = pos[q]
+                    n_new = (qpos - p + 1).double()  # response tokens visible to each query, itself included
+                    seg = seg_of[qpos - p]
+                    for j, (_, att) in enumerate(keep):
+                        w = att[0][:, q].double()  # [H, q, keys]
+                        ctx = w[..., 1:p].sum(-1)
+                        new = w[..., p:].sum(-1)
+                        ctx_mean, new_mean = ctx / max(p - 1, 1), new / n_new
+                        feats = torch.stack([ctx_mean / (ctx_mean + new_mean + 1e-12), ctx, w[..., 0],
+                                             (w[..., :p] * digit).sum(-1)])  # [4, H, q]
+                        sums[:, :, j].index_add_(1, seg, feats.permute(0, 2, 1))
+                del out, keep
+            counts = torch.bincount(seg_of, minlength=segments).double()[None, :, None, None]
+            f = (sums / counts).float().cpu().numpy().astype(np.float16)
+            np.savez_compressed(out_dir / f"{g}.npz", lb_ratio=f[0], ctx_mass=f[1], sink=f[2], num_mass=f[3],
+                                layers=np.array(layers), n_resp=n, n_prompt=p)  # each [S, L_attn, H]
+            del cache
+            torch.cuda.empty_cache()
+            print(f"  {k}/{len(groups)} {g}: {n} resp tokens, {len(layers)} attn layers, {time.time() - start:.0f}s",
+                  flush=True)
+    finally:
+        model.set_attn_implementation(previous)
+
+
+NOISE_SIGMAS = (0.03, 0.1, 0.3, 1.0)  # noise norm / the token's own residual norm
+NOISE_REGIONS = ("half", "all")       # CoT tokens [0, n/2) or [0, n)
+NOISE_DRAWS = 2
+NOISE_FRAC = 0.5                      # layer depth, as the probes
+FORCE_THINK = "\n</think>\n\nThe final answer is:\n\\[\n\\boxed{"  # cvbench/force_answers.py
+FORCE_HARMONY = "<|end|><|start|>assistant<|channel|>final<|message|>The final answer is \\(\\boxed{"
+
+
+def decoder_layers(model):
+    n = getattr(model.config, "text_config", model.config).num_hidden_layers
+    return next(m for name, m in model.named_modules()
+                if isinstance(m, torch.nn.ModuleList) and len(m) == n and name.endswith("layers"))
+
+
+def forced_answer_text(model, response: str) -> tuple[str, str, bool]:
+    """(reasoning cut at its end-of-thinking marker, force suffix, whether a marker was found)."""
+    harmony = model.config.model_type == "gpt_oss"
+    marker = "assistantfinal" if harmony else "</think>"  # gpt-oss: harmony headers decoded without specials
+    cut = response.find(marker)
+    return (response if cut < 0 else response[:cut]), (FORCE_HARMONY if harmony else FORCE_THINK), cut >= 0
+
+
+@torch.no_grad()
+def answer_logprobs(model, ids: list[int], n_answer: int, device, hook_state: dict | None = None,
+                    chunk: int = 1024) -> tuple[torch.Tensor, torch.Tensor]:
+    """log p of the last ``n_answer`` tokens of ``ids`` and the argmax at those positions, chunked over a KV
+    cache; the last chunk holds at least the suffix + answer so their logits come from one call."""
+    from transformers import DynamicCache
+    cache = DynamicCache(config=model.config)
+    tail = max(n_answer + 64, 1)
+    starts = list(range(0, len(ids) - tail, chunk)) + [max(len(ids) - tail, 0)]
+    for i, a in enumerate(starts):
+        b = starts[i + 1] if i + 1 < len(starts) else len(ids)
+        if a >= b:
+            continue
+        pos = torch.arange(a, b, device=device)
+        if hook_state is not None:
+            hook_state["offset"] = a
+        out = model(input_ids=torch.tensor([ids[a:b]], device=device), past_key_values=cache, use_cache=True,
+                    cache_position=pos, position_ids=pos[None], logits_to_keep=n_answer + 1 if b == len(ids) else 1)
+    logits = out.logits[0, :-1].float()  # positions predicting the answer tokens
+    logp = torch.log_softmax(logits, -1).gather(-1, torch.tensor(ids[-n_answer:], device=device)[:, None])[:, 0]
+    return logp.cpu(), logits.argmax(-1).cpu()
+
+
+@torch.no_grad()
+def run_noise(model, tokenizer, model_id: str, todo: dict[str, str]) -> None:
+    """Latent-noise sensitivity of the model's own answer. The greedy trace (cut at its end-of-thinking marker)
+    is closed with a budget-forcing suffix and the answer A decoded greedily up to ``}``; then prompt + trace
+    + suffix + A is teacher-forced once clean and once per (region, sigma, draw) with noise added to the
+    residual stream after layer ``round(NOISE_FRAC * L)`` on the CoT tokens of the region: a random unit
+    direction per token (same draws for every sigma) times sigma times that token's residual norm.
+    Saves log p(A) per token clean, mean log p(A) noisy, and whether the argmax over A changed."""
+    out_dir = DATA / "noise" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    greedy = {r["group"]: r for r in read_jsonl(DATA / "greedy" / f"{safe(model_id)}.jsonl")}
+    groups = [g for g in todo if not (out_dir / f"{g}.npz").is_file()]
+    print(f"[noise] {model_id}: {len(groups)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    layers = decoder_layers(model)
+    layer = int(round(NOISE_FRAC * len(layers)))
+    state = {"offset": 0, "noise": None, "lo": 0, "hi": 0, "sigma": 0.0}
+
+    def hook(module, args, output):
+        if state["noise"] is None:
+            return output
+        h = output[0] if isinstance(output, tuple) else output  # [1, T, d]
+        pos = state["offset"] + torch.arange(h.shape[1], device=h.device)
+        m = (pos >= state["lo"]) & (pos < state["hi"])
+        if m.any():
+            hm = h[0, m]
+            h = h.clone()
+            h[0, m] = hm + state["sigma"] * hm.float().norm(dim=-1, keepdim=True).to(hm.dtype) * state["noise"][pos[m]]
+            return (h,) + tuple(output[1:]) if isinstance(output, tuple) else h
+        return output
+
+    handle = layers[layer - 1].register_forward_hook(hook)  # output of block `layer` = hidden_states[layer]
+    try:
+        for k, g in enumerate(groups, 1):
+            start = time.time()
+            prompt = format_problem(tokenizer, todo[g])
+            prompt_ids = tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=2048)["input_ids"]
+            reasoning, suffix, had_marker = forced_answer_text(model, greedy.get(g, {}).get("generated_text", ""))
+            cot_ids = tokenizer(reasoning, add_special_tokens=False)["input_ids"][:4096]
+            p, n = len(prompt_ids), len(cot_ids)
+            if n < 10:
+                print(f"  {k}/{len(groups)} {g}: only {n} CoT tokens, skipped", flush=True)
+                continue
+            head = prompt_ids + cot_ids + tokenizer(suffix, add_special_tokens=False)["input_ids"]
+            enc = torch.tensor([head], device=device)
+            gen = model.generate(input_ids=enc, attention_mask=torch.ones_like(enc), max_new_tokens=16,
+                                 do_sample=False, pad_token_id=tokenizer.pad_token_id)[0, len(head):].tolist()
+            answer = []
+            for t in gen:
+                answer.append(t)
+                if "}" in tokenizer.decode([t]):
+                    break
+            ids = head + answer
+            lp_clean, am_clean = answer_logprobs(model, ids, len(answer), device)
+            d = getattr(model.config, "text_config", model.config).hidden_size
+            noisy = np.zeros((len(NOISE_REGIONS), len(NOISE_SIGMAS), NOISE_DRAWS), np.float32)
+            flip = np.zeros_like(noisy, dtype=bool)
+            for di in range(NOISE_DRAWS):
+                gen_ = torch.Generator(device=device).manual_seed(1000 + di)
+                u = torch.randn(len(ids), d, device=device, generator=gen_)
+                state["noise"] = (u / u.norm(dim=-1, keepdim=True)).to(model.dtype)
+                for ri, region in enumerate(NOISE_REGIONS):
+                    state["lo"], state["hi"] = p, p + (n // 2 if region == "half" else n)
+                    for si, sigma in enumerate(NOISE_SIGMAS):
+                        state["sigma"] = sigma
+                        lp, am = answer_logprobs(model, ids, len(answer), device, state)
+                        noisy[ri, si, di] = lp.mean().item()
+                        flip[ri, si, di] = bool((am != am_clean).any())
+                state["noise"] = None
+            np.savez_compressed(out_dir / f"{g}.npz", logp_clean=lp_clean.numpy(), logp_noisy=noisy, flip=flip,
+                                sigmas=np.array(NOISE_SIGMAS), regions=np.array(NOISE_REGIONS), layer=layer,
+                                answer=tokenizer.decode(answer), had_marker=had_marker, n_cot=n, n_prompt=p)
+            torch.cuda.empty_cache()
+            print(f"  {k}/{len(groups)} {g}: {n} CoT tokens, answer {tokenizer.decode(answer)!r}, "
+                  f"logp {lp_clean.mean():.2f} -> {np.round(noisy[0].mean(-1), 2).tolist()} (half), "
+                  f"{time.time() - start:.0f}s", flush=True)
+    finally:
+        handle.remove()
+        state["noise"] = None
+
+
+HEDGE = re.compile(r"\b(wait|hmm+|alternatively|actually|let me (?:double[- ]check|re-?check|verify|reconsider)|"
+                   r"but (?:wait|hold on)|on second thought|i made (?:a|an) (?:mistake|error)|that'?s (?:not right|wrong))\b",
+                   re.IGNORECASE)  # cvbench/cv.py HESITATION
+HEDGE_PRE, HEDGE_POST = 16, 32  # tokens before a hedge (what triggered it) / from it on (the reconsideration)
+
+
+@torch.no_grad()
+def run_hedge(model, tokenizer, model_id: str, todo: dict[str, str], segments: int) -> None:
+    out_dir = DATA / "hedge" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    greedy = {r["group"]: r for r in read_jsonl(DATA / "greedy" / f"{safe(model_id)}.jsonl")}
+    groups = [g for g in todo if not (out_dir / f"{g}.npz").is_file()]
+    print(f"[hedge] {model_id}: {len(groups)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    for k, g in enumerate(groups, 1):
+        start = time.time()
+        prompt = format_problem(tokenizer, todo[g])
+        prompt_ids = tokenizer(prompt, add_special_tokens=False, truncation=True, max_length=2048)["input_ids"]
+        response = greedy.get(g, {}).get("generated_text", "")
+        enc = tokenizer(response, add_special_tokens=False, return_offsets_mapping=True)
+        response_ids, offsets = enc["input_ids"][:4096], enc["offset_mapping"][:4096]
+        p, n = len(prompt_ids), len(response_ids)
+        if n < segments:
+            print(f"  {k}/{len(groups)} {g}: only {n} resp tokens, skipped", flush=True)
+            continue
+        # (A) hedge-localised states
+        ends = np.array([e for _, e in offsets])
+        hedge_pos = sorted({int(np.searchsorted(ends, m.start(), side="right")) for m in HEDGE.finditer(response)})
+        hedge_pos = [t for t in hedge_pos if t < n]
+        hs = chunked_hidden_states(model, prompt_ids + response_ids, device)
+        feats = {}
+        if hedge_pos:
+            idx = {"at": hedge_pos,
+                   "pre": sorted({t for h in hedge_pos for t in range(max(h - HEDGE_PRE, 0), h)} - set(hedge_pos)),
+                   "post": sorted({t for h in hedge_pos for t in range(h, min(h + HEDGE_POST, n))})}
+            for name, pos in idx.items():
+                if not pos:
+                    pos = hedge_pos
+                at = torch.tensor([p + t for t in pos], device=hs[0].device)
+                feats[f"hedge_{name}"] = torch.stack([h[0, at].float().mean(0) for h in hs]).cpu().numpy().astype(np.float16)
+        del hs
+        torch.cuda.empty_cache()
+        # (B) early-answer commitment curve
+        reasoning, suffix, had_marker = forced_answer_text(model, response)
+        cot_ids = tokenizer(reasoning, add_special_tokens=False)["input_ids"][:4096]
+        suffix_ids = tokenizer(suffix, add_special_tokens=False)["input_ids"]
+        head = prompt_ids + cot_ids + suffix_ids
+        x = torch.tensor([head], device=device)
+        gen = model.generate(input_ids=x, attention_mask=torch.ones_like(x), max_new_tokens=16, do_sample=False,
+                             pad_token_id=tokenizer.pad_token_id)[0, len(head):].tolist()
+        answer = []
+        for t in gen:
+            answer.append(t)
+            if "}" in tokenizer.decode([t]):
+                break
+        bounds = np.linspace(0, len(cot_ids), segments + 1).round().astype(int)[1:]
+        logp, match = [], []
+        full_am = None
+        for b in bounds[::-1]:  # full trace first: its argmax is the reference
+            lp, am = answer_logprobs(model, prompt_ids + cot_ids[:b] + suffix_ids + answer, len(answer), device)
+            full_am = am if full_am is None else full_am
+            logp.append(lp.mean().item())
+            match.append(bool((am == full_am).all()))
+        np.savez_compressed(out_dir / f"{g}.npz", **feats, hedge_pos=np.array(hedge_pos, int), n_resp=n, n_prompt=p,
+                            commit_logp=np.array(logp[::-1], np.float32), commit_match=np.array(match[::-1]),
+                            commit_bounds=bounds, answer=tokenizer.decode(answer), had_marker=had_marker)
+        torch.cuda.empty_cache()
+        print(f"  {k}/{len(groups)} {g}: {n} resp tokens, {len(hedge_pos)} hedges, answer {tokenizer.decode(answer)!r}, "
+              f"logp curve {np.round(logp[::-1], 1).tolist()}, {time.time() - start:.0f}s", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge"])
     parser.add_argument("--models", nargs="+", default=None, help="Default: every model in the case file.")
     parser.add_argument("--cases", default="cases.jsonl", help="Case file under data/cvbench.")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--n", type=int, default=4)
     parser.add_argument("--budget", type=int, default=2048)
     parser.add_argument("--segments", type=int, default=10)
+    parser.add_argument("--tsegs-budgets", type=int, nargs="+", default=[8192, 16384], help="tsegs: response cuts.")
     args = parser.parse_args()
 
     cases = read_jsonl(DATA / args.cases)
@@ -420,6 +804,14 @@ def main() -> None:
                         run_lens(model, tokenizer, model_id)
                     elif stage == "segs":
                         run_segs(model, tokenizer, model_id, todo, args.segments)
+                    elif stage == "noise":
+                        run_noise(model, tokenizer, model_id, todo)
+                    elif stage == "hedge":
+                        run_hedge(model, tokenizer, model_id, todo, args.segments)
+                    elif stage == "lookback":
+                        run_lookback(model, tokenizer, model_id, todo, args.segments)
+                    elif stage == "tsegs":
+                        run_tsegs(model, tokenizer, model_id, todo, args.segments, sorted(args.tsegs_budgets))
                     else:
                         run_sample(model, tokenizer, model_id, todo, args.n, args.budget)
         finally:

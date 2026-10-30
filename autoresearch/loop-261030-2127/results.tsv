@@ -1,0 +1,3 @@
+# metric_direction: higher_is_better
+iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
+0	2026-10-30T21:27:40+11:00	f292e1f	0.7792	0.0	-	-	baseline	seg+traj, logistic C=0.1, 118 cases 20x5 CV

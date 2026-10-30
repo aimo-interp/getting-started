@@ -40,6 +40,7 @@ import whitebox as wb  # noqa: E402
 ROOT = cv.ROOT
 C = 0.1
 TWINDOWS = ((0, 5), (5, 9))
+COMMIT_FEATS = ["c_mean", "c_commit"]  # commit block: chosen before seeing labels
 TX_VAR = False  # tx: add agree*(1-agree)
 
 
@@ -118,6 +119,40 @@ def prob_feats(cases):
                          "p_dollars": P.str.count(r"\$")}, index=cases.index)
 
 
+def hedge_file(model_id, group):
+    return cv.DATA / "hedge" / cv.safe(model_id) / f"{group}.npz"
+
+
+def load_hedge(cases, site):
+    """wb.diffmean_scores-style acts {site: [L+1, d]}: the hedge-localised state, or the CoT mean without its
+    wrap-up (seg 0-9) when the trace has no hedge."""
+    acts = wb.load_acts(cases, cv)
+    out = []
+    for c, a in zip(cases.itertuples(), acts):
+        f = hedge_file(c.model_id, c.group)
+        z = np.load(f) if f.is_file() else {}
+        out.append({site: z[site].astype(np.float32) if site in z else a["seg_0_9"]})
+    return out
+
+
+def commit_feats(cases):
+    """Early-answer commitment curve (label-free): log p of the final forced answer when the trace is cut at
+    10%..100% and closed with the forcing suffix; match = the forced argmax equals the final answer."""
+    rows = []
+    for c in cases.itertuples():
+        f = hedge_file(c.model_id, c.group)
+        if not f.is_file():
+            rows.append({})
+            continue
+        z = np.load(f)
+        lp, m = z["commit_logp"].astype(float), z["commit_match"].astype(bool)
+        settled = np.flatnonzero(~m[:-1])  # last boundary where the answer differed from the final one
+        rows.append({"c_mean": lp[:-1].mean(), "c_half": lp[4], "c_early": lp[:3].mean(),
+                     "c_commit": (settled[-1] + 1) / len(m) if len(settled) else 0.0,
+                     "c_flips": float(np.abs(np.diff(m.astype(int))).sum()), "c_final": lp[-1]})
+    return pd.DataFrame(rows, index=cases.index, columns=["c_mean", "c_half", "c_early", "c_commit", "c_flips", "c_final"])
+
+
 def lb_feats(cases):
     import lookback
     _, S = lookback.load(cases)
@@ -144,9 +179,12 @@ def make_blocks(cases, names, args):
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: np.concatenate(
                 [wb.diffmean_scores(acts, models, y, tr, None, s, args.frac) for s in ("seg_0_5", "seg_5_9")], 1)
-        elif name in ("tseg", "tseg8k", "tseg1"):
-            budget = 8192 if name == "tseg8k" else 16384
-            acts = load_tsegs(cases, budget, samples=[args.sample] if name == "tseg1" else None)
+        elif name in ("hedge_at", "hedge_pre", "hedge_post"):
+            acts = load_hedge(cases, name)
+            out[name] = lambda tr, acts=acts, site=name: wb.diffmean_scores(acts, models, y, tr, None, site, args.frac)
+        elif name in ("tseg", "tseg8k", "tseg1", "tseg1_8k"):
+            budget = 8192 if name.endswith("8k") else 16384
+            acts = load_tsegs(cases, budget, samples=[args.sample] if name.startswith("tseg1") else None)
             out[name] = lambda tr, acts=acts: np.concatenate(
                 [wb.diffmean_scores(acts, models, y, tr, None, f"t_{a}_{b}", args.frac) for a, b in TWINDOWS], 1)
         else:
@@ -158,6 +196,7 @@ def make_blocks(cases, names, args):
                  "pert": lambda: pert_feats(cases),
                  "prob": lambda: prob_feats(cases),
                  "chal": lambda: cv.m_challenge(cases, args)[0],
+                 "commit": lambda: commit_feats(cases)[COMMIT_FEATS],
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()
             Z = cv.zscore_within_model(F, cases)
