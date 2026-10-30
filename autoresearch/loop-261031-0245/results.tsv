@@ -1,0 +1,16 @@
+# metric_direction: higher_is_better
+iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
+0	2026-10-31T02:59:50+11:00	8a7375c	0.8153	0.0	-	-	baseline	seg+traj+tx, 20 repeats
+1	2026-10-31T02:59:50+11:00	-	0.8076	-0.008	-	-	discard	tuned threshold (inner CV)
+2	2026-10-31T02:59:50+11:00	-	0.7992	-0.016	-	-	discard	+E2H difficulty ridge, tuned
+3	2026-10-31T02:59:50+11:00	-	0.8042	-0.011	-	-	discard	seg multi-layer avg (frac .3-.7)
+4	2026-10-31T02:59:50+11:00	-	0.8119	-0.003	-	-	discard	seg shrinkage LDA in PCA basis (= DIM)
+5	2026-10-31T02:59:50+11:00	-	0.8025	-0.013	-	-	discard	seg single window 0-9
+6	2026-10-31T02:59:50+11:00	-	0.7839	-0.031	-	-	discard	seg windows 0-3/3-7/7-10
+7	2026-10-31T02:59:50+11:00	-	0.8110	-0.004	-	-	discard	seg frac sweep .3-.8 (best .5)
+8	2026-10-31T02:59:50+11:00	-	0.8136	-0.002	-	-	discard	tx extra features (answered, distinct, entropy, len sd, prov, fin len, first frac)
+9	2026-10-31T02:59:50+11:00	-	0.8110	-0.004	-	-	discard	greedy-vs-sample agreement
+10	2026-10-31T02:59:50+11:00	5e55665	0.8191	+0.004	-	-	keep	reliability-gated seg probe (inner AUC>=.6 per model/window); +.014 seg+traj, +.025 at tx4k, AUC +.044
+11	2026-10-31T02:59:50+11:00	-	0.7975	-0.022	-	-	discard	seg direction pooled over gpt-oss efforts
+12	2026-10-31T02:59:50+11:00	f7c3ff8	0.8203	+0.001	-	-	keep	stack-probe package with gated seg (gated cv .820, .80 at 2k-8k)
+13	2026-10-31T02:59:50+11:00	-	0.8085	-0.011	-	-	discard	per-model sign check on traj/tx features

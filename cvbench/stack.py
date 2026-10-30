@@ -355,6 +355,24 @@ def pooled_seg_scores(acts, models, y, tr, sites=("seg_0_5", "seg_5_9"), frac=0.
     return out
 
 
+def sign_safe(Z, models, y, tr, min_gap=0.0):
+    """Zero a feature for a model when its training-row AUC there points the other way from the pooled
+    training-row AUC of all other models (a per-model sign flip the shared logistic cannot represent)."""
+    from sklearn.metrics import roc_auc_score
+    Z = Z.copy()
+    for m in np.unique(models):
+        tr_m = tr[models[tr] == m]
+        tr_o = tr[models[tr] != m]
+        if not (0 < y[tr_m].sum() < len(tr_m)):
+            continue
+        for j in range(Z.shape[1]):
+            a_m = roc_auc_score(y[tr_m], Z[tr_m, j]) - 0.5
+            a_o = roc_auc_score(y[tr_o], Z[tr_o, j]) - 0.5
+            if a_m * a_o < 0 and abs(a_m) > min_gap:
+                Z[models == m, j] = 0.0
+    return Z
+
+
 SAFE_MIN_AUC = 0.6
 
 
@@ -417,6 +435,13 @@ def make_blocks(cases, names, args):
         elif name == "seg_pool":
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: pooled_seg_scores(acts, models, y, tr, frac=args.frac)
+        elif name in ("traj_safe", "tx_safe"):  # per-model sign check of each feature against the pooled sign
+            base = "traj" if name == "traj_safe" else "tx"
+            Fb = {"traj": lambda: pd.DataFrame([traj.traj_features(sg) for sg in traj.load_segs(cases)],
+                                               index=cases.index)[traj.FEATS],
+                  "tx": lambda: tx_feats(cases)}[base]()
+            Zb = np.asarray(cv.zscore_within_model(Fb, cases), dtype=float)
+            out[name] = lambda tr, Zb=Zb: sign_safe(Zb, models, y, tr)
         elif name == "seg1":  # one window 0-9 (fewer parameters)
             acts = wb.load_acts(cases, cv)
             out[name] = lambda tr, acts=acts: wb.diffmean_scores(acts, models, y, tr, None, "seg_0_9", args.frac)
