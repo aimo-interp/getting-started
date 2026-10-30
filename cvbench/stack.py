@@ -168,9 +168,18 @@ def liref_feats(cases, frac, sites=("liref_last", "liref_cot", "liref_cot2")):
             continue
         z = np.load(p)
         H, kind = z["h_last"].astype(np.float32), z["kind"]
-        layer = wb.layer_of(H.shape[1], frac)
-        r = H[kind == "reasoning", layer].mean(0) - H[kind == "memory", layer].mean(0)
-        dirs[m] = (layer, r / (np.linalg.norm(r) + 1e-8))
+        k = kind == "reasoning"
+
+        def direction(layer):
+            r = H[k, layer].mean(0) - H[~k, layer].mean(0)
+            return r / (np.linalg.norm(r) + 1e-8)
+
+        def separation(layer):  # d' of the contrast prompts along the layer's own direction (label-free)
+            proj = H[:, layer] @ direction(layer)
+            return (proj[k].mean() - proj[~k].mean()) / np.sqrt((proj[k].var() + proj[~k].var()) / 2 + 1e-8)
+        L = H.shape[1]
+        layer = max(range(1, L), key=separation) if frac is None else wb.layer_of(L, frac)
+        dirs[m] = (layer, direction(layer))
     rows = []
     for c, a in zip(cases.itertuples(), acts):
         if c.model_id not in dirs:
@@ -238,6 +247,7 @@ def make_blocks(cases, names, args):
                  "commit": lambda: commit_feats(cases)[COMMIT_FEATS],
                  "liref": lambda: liref_feats(cases, args.frac),
                  "liref_last": lambda: liref_feats(cases, args.frac, ("liref_last",)),
+                 "liref_auto": lambda: liref_feats(cases, None, ("liref_last",)),  # layer by contrast d' per model
                  "liref_cot": lambda: liref_feats(cases, args.frac, ("liref_cot", "liref_cot2")),
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()

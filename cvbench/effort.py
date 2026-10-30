@@ -78,11 +78,69 @@ def ridge_scores(acts, models, t, tr, site, frac, alpha) -> np.ndarray:
     return feat[:, None]
 
 
+# ---------------------------------------------------------------- unlabelled training set (generate.py effort)
+SITE2, FRAC2, ALPHA2 = "seg_0_9", 0.5, 1e4
+TARGET2 = "log_len"   # or cap_rate
+_U: dict = {}
+
+
+def _norm(t: str) -> str:
+    import re
+    return re.sub(r"\s+", " ", t).strip().lower()
+
+
+def load_unlabelled(model_id: str, site: str, frac: float) -> dict:
+    """Effort-stage rows of one model at one site/layer: X [n, d], targets, problem ids."""
+    key = (model_id, site, frac)
+    if key not in _U:
+        d = cv.DATA / "effort" / cv.safe(model_id)
+        files = sorted(d.glob("*.npz")) if d.is_dir() else []
+        X, ll, cr, pid = [], [], [], []
+        for f in files:
+            z = np.load(f)
+            fi = int(np.argmin(np.abs(z["fracs"] - frac)))
+            X.append(z[site][fi].astype(np.float32)), ll.append(float(z["log_len"])), cr.append(float(z["cap_rate"]))
+            pid.append(str(z["problem_id"]))
+        _U[key] = {"X": np.stack(X) if X else np.zeros((0, 1)), "log_len": np.array(ll), "cap_rate": np.array(cr),
+                   "pid": np.array(pid)}
+    return _U[key]
+
+
+def case_pids(cases) -> np.ndarray:
+    pids = {_norm(r["problem"]): r["problem_id"] for r in cv.read_jsonl(cv.ROOT / "data" / "labelgen" / "problems.jsonl")}
+    return np.array([pids.get(_norm(p), "") for p in cases.problem])
+
+
+def unlabelled_scores(cases, acts, tr, site=SITE2, frac=FRAC2, alpha=ALPHA2, target=TARGET2) -> np.ndarray:
+    """Per model: ridge(activation -> sampled length) trained on that model's effort-stage prompts whose
+    problem is not a test-fold problem, predicting every cvbench case. Models without data score 0."""
+    models = cases.model_id.to_numpy()
+    pids = case_pids(cases)
+    held_out = set(pids[np.setdiff1d(np.arange(len(cases)), tr)]) - {""}
+    feat = np.zeros(len(cases))
+    for m in np.unique(models):
+        u = load_unlabelled(m, site, frac)
+        keep = np.array([p not in held_out for p in u["pid"]], bool)
+        if keep.sum() < 20:
+            continue
+        idx = np.where(models == m)[0]
+        L = acts[idx[0]][site].shape[0]
+        layer = wb.layer_of(L, frac)
+        Xu, tu = u["X"][keep].astype(np.float64), u[target][keep]
+        mu, sd = Xu.mean(0), Xu.std(0) + 1e-6
+        r = Ridge(alpha=alpha).fit((Xu - mu) / sd, tu)
+        H = np.stack([acts[i][site][layer] for i in idx]).astype(np.float64)
+        feat[idx] = r.predict((H - mu) / sd)
+    return feat[:, None]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sites", nargs="+", default=list(WINDOWS) + ["last_prompt"])
     ap.add_argument("--fracs", nargs="+", type=float, default=[0.3, 0.5, 0.7])
     ap.add_argument("--alphas", nargs="+", type=float, default=[1e2, 1e3, 1e4])
+    ap.add_argument("--unlabelled", action="store_true", help="Probe trained on the effort-stage prompts instead.")
+    ap.add_argument("--target", default="log_len", choices=["log_len", "cap_rate"])
     args = ap.parse_args()
     cases = cv.load_cases()
     y = cases.is_robust.astype(bool).to_numpy()
@@ -95,7 +153,8 @@ def main() -> None:
             for alpha in args.alphas:
                 oof = np.zeros(len(t))
                 for tr, te in GroupKFold(5).split(t, groups=groups):
-                    oof[te] = ridge_scores(acts, models, t, tr, site, frac, alpha)[te, 0]
+                    oof[te] = (unlabelled_scores(cases, acts, tr, site, frac, alpha, args.target)
+                               if args.unlabelled else ridge_scores(acts, models, t, tr, site, frac, alpha))[te, 0]
                 ok = np.isfinite(t)
                 # within-model correlation, pooled over models (z-score within model first)
                 z = lambda v: np.concatenate([(v[models == m] - v[models == m].mean()) / (v[models == m].std() + 1e-9)
