@@ -157,6 +157,7 @@ def make_blocks(cases, names, args):
                  "lb": lambda: lb_feats(cases),
                  "pert": lambda: pert_feats(cases),
                  "prob": lambda: prob_feats(cases),
+                 "chal": lambda: cv.m_challenge(cases, args)[0],
                  "cot": lambda: cv.m_cot_text(cases, args)[0],
                  "len": lambda: cv.m_length(cases, args)[0]}[name]()
             Z = cv.zscore_within_model(F, cases)

@@ -14,3 +14,4 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 11	2026-10-30T14:05:38+11:00	-	0.8081	-0.0072	-	-	discard	+ lookback lb ratio
 12	2026-10-30T14:05:38+11:00	-	0.8034	-0.0119	-	-	discard	+ ttraj (trajectory over sampled traces)
 13	2026-10-30T14:05:38+11:00	-	0.8051	-0.0102	-	-	discard	+ cot_text greedy hesitation feats
+14	2026-10-30T20:41:03+11:00	-	0.8055	-0.0098	-	-	discard	self-challenge/CoVe (4 own 16k samples, 'might be wrong' + CoVe turn, T=.6, 4k): models keep answer ~95% regardless; alone AUC .57
