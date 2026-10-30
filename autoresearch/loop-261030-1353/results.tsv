@@ -11,3 +11,6 @@ iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
 8	2026-10-30T14:01:16+11:00	-	0.7992	-0.0055	-	-	discard	per-model gate among tx|seg+traj|seg+traj+tx by inner CV (picks unstable on small models)
 9	2026-10-30T14:02:19+11:00	-	0.7894	-0.0153	-	-	discard	problem-text feats (length, #numbers, LaTeX) alone AUC .58
 10	2026-10-30T14:04:08+11:00	-	0.8153	+0.0106	-	-	keep	logistic C 0.3->0.1 for seg+traj+tx (C=1 .784, C=.03 .771; picked from 4 values, mild tuning); organiser-only .833
+11	2026-10-30T14:05:38+11:00	-	0.8081	-0.0072	-	-	discard	+ lookback lb ratio
+12	2026-10-30T14:05:38+11:00	-	0.8034	-0.0119	-	-	discard	+ ttraj (trajectory over sampled traces)
+13	2026-10-30T14:05:38+11:00	-	0.8051	-0.0102	-	-	discard	+ cot_text greedy hesitation feats
