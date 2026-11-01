@@ -1,0 +1,5 @@
+iteration	commit	metric	delta	status	description
+0	c55f2b4	0.8191	0	baseline	seg_safe+traj+tx (20x5 CV)
+1	-	0.8042	-0.0149	discard	+pc (competence probe l2, 3 models only)
+2	-	0.8174	-0.0017	discard	+pc1
+3	-	0.8301	+0.0110	keep	gate seg_safe+traj+tx | prior: per-model fallback to always-robust (gpt-oss high .733->.827)

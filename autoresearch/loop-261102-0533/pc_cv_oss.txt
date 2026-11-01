@@ -1,0 +1,10 @@
+openai/gpt-oss-120b:low: n=281  mean p=0.64  p>=.7: 0.59  p==0: 0.17
+  layer frac 0.3 alpha 100: spearman 0.265  AUC(p>=.7) ridge 0.647  logistic 0.734
+  layer frac 0.3 alpha 1000: spearman 0.287  AUC(p>=.7) ridge 0.660  logistic 0.734
+  layer frac 0.3 alpha 10000: spearman 0.379  AUC(p>=.7) ridge 0.709  logistic 0.734
+  layer frac 0.5 alpha 100: spearman 0.320  AUC(p>=.7) ridge 0.666  logistic 0.689
+  layer frac 0.5 alpha 1000: spearman 0.321  AUC(p>=.7) ridge 0.667  logistic 0.689
+  layer frac 0.5 alpha 10000: spearman 0.324  AUC(p>=.7) ridge 0.668  logistic 0.689
+  layer frac 0.7 alpha 100: spearman 0.300  AUC(p>=.7) ridge 0.664  logistic 0.688
+  layer frac 0.7 alpha 1000: spearman 0.300  AUC(p>=.7) ridge 0.664  logistic 0.688
+  layer frac 0.7 alpha 10000: spearman 0.301  AUC(p>=.7) ridge 0.665  logistic 0.688

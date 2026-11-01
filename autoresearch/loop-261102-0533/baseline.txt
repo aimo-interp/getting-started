@@ -1,0 +1,2 @@
+seg_safe+traj+tx             acc=0.8191±0.0164 auc=0.8366 bacc=0.7322 | Qwen3.5-4B=0.896; Skywork-OR1-Math-7B=0.816; Olmo-3-7B-Think=0.928; DeepSeek-R1-0528-Qwen3-8B=0.650; gpt-oss-120b:high=0.733; gpt-oss-120b:low=0.693; gpt-oss-120b:medium=0.983
+METRIC 0.8191

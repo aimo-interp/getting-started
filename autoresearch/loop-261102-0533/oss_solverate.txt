@@ -1,0 +1,45 @@
+dict_keys(['case', 'model', 'effort', 'problem', 'gold', 'gold_source', 'is_robust', 'max_drop', 'group', 'source'])
+gold for 37 of 37
+high   9dd85c12874d robust=True  acc=0.00 agree=0.00 acc@4k=0.00 meantok=16384
+high   a09aac07cb64 robust=False acc=0.00 agree=0.00 acc@4k=0.00 meantok=16384
+high   51697b0daa5c robust=True  acc=0.12 agree=0.12 acc@4k=0.00 meantok=16061
+high   a2e1c2f1ef6f robust=True  acc=0.75 agree=0.75 acc@4k=0.00 meantok=12140
+high   757506c4e1d1 robust=False acc=0.88 agree=0.88 acc@4k=0.00 meantok=11542
+high   26a263ad8113 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=2213
+high   a59a836b9807 robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=7909
+high   f862f0368b2a robust=True  acc=1.00 agree=1.00 acc@4k=0.75 meantok=3895
+high   0412b80ad1a4 robust=True  acc=1.00 agree=1.00 acc@4k=0.12 meantok=5401
+high   9dca5d882a4c robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=7733
+high   d8be640af827 robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=7042
+high   2ca839cfbfc6 robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=5541
+high   d06c3e7f2d19 robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=8303
+high   f3d7b78d243a robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=6786
+high   f7b4a98af9dd robust=True  acc=1.00 agree=1.00 acc@4k=0.00 meantok=11735
+low    9dca5d882a4c robust=True  acc=0.88 agree=0.88 acc@4k=0.88 meantok=2992
+low    2ca839cfbfc6 robust=True  acc=0.88 agree=0.88 acc@4k=0.88 meantok=2167
+low    a59a836b9807 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=2004
+low    26a263ad8113 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=663
+low    f862f0368b2a robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=1234
+low    f7b4a98af9dd robust=False acc=1.00 agree=1.00 acc@4k=1.00 meantok=1876
+low    7443669f7e90 robust=False acc=1.00 agree=1.00 acc@4k=1.00 meantok=1745
+medium 57b6ba21f3f5 robust=False acc=0.50 agree=0.50 acc@4k=0.00 meantok=8640
+medium 7e76250549ad robust=False acc=0.62 agree=0.62 acc@4k=0.00 meantok=9426
+medium 514ab5381d43 robust=False acc=0.75 agree=0.75 acc@4k=0.00 meantok=12384
+medium d9e9c4d93e19 robust=False acc=0.88 agree=0.88 acc@4k=0.00 meantok=7118
+medium d06c3e7f2d19 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=3170
+medium a59a836b9807 robust=True  acc=1.00 agree=1.00 acc@4k=0.88 meantok=3139
+medium 26a263ad8113 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=966
+medium d8be640af827 robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=2590
+medium f862f0368b2a robust=True  acc=1.00 agree=1.00 acc@4k=1.00 meantok=1915
+medium 2ca839cfbfc6 robust=True  acc=1.00 agree=1.00 acc@4k=0.88 meantok=3164
+medium 9dca5d882a4c robust=True  acc=1.00 agree=1.00 acc@4k=0.38 meantok=4423
+medium 0412b80ad1a4 robust=True  acc=1.00 agree=1.00 acc@4k=0.88 meantok=2740
+medium bde3afe054a4 robust=True  acc=1.00 agree=1.00 acc@4k=0.12 meantok=4950
+medium f7b4a98af9dd robust=True  acc=1.00 agree=1.00 acc@4k=0.88 meantok=3452
+medium 757506c4e1d1 robust=False acc=1.00 agree=1.00 acc@4k=0.00 meantok=5211
+
+n=37 with gold 37; AUC acc 0.744  agree 0.744  acc@4k 0.671
+ rule acc>=0.75: 0.784   rule agree>=0.75: 0.784
+ rule acc>=0.875: 0.784   rule agree>=0.875: 0.784
+ rule acc>=1.0: 0.784   rule agree>=1.0: 0.784
+ always True: 0.7567567567567568
