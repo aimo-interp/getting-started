@@ -1,3 +1,0 @@
-# metric_direction: higher_is_better
-iteration	timestamp	commit	metric	delta	guard	guard-metric	status	description
-0	2026-10-31T01:58:10+11:00	8a7375c	0.8119	0.0	-	-	baseline	seg+traj+tx stack, 10 repeats (0.815 at 20)

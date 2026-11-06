@@ -1,3 +1,0 @@
-{"version":"2.1.0","source":"loop","timestamp":"2026-10-30T20:41:20+11:00","status":"BOUNDED","results_tsv":"autoresearch/loop-261030-1353/results.tsv",
-"findings":["seg+traj+tx stack C=0.1 cv .815 (organiser-only .833)","challenge/CoVe null","latent agreement null","self-perturbation adds nothing over tx"],
-"config":{"goal":"cv>0.85","scope":"cvbench/","metric":"cv_score","direction":"higher_is_better","verify":"uv run cvbench/stack.py --blocks seg traj tx"}}

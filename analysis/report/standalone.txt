@@ -1,0 +1,21 @@
+always robust main: 0.703
+main   seg alone                            acc 0.774 +- 0.017  AUC 0.727
+main   traj alone                           acc 0.753 +- 0.011  AUC 0.750
+main   attn alone                           acc 0.711 +- 0.004  AUC 0.644
+main   white-box (seg+traj+attn, nested)    acc 0.797 +- 0.016  AUC 0.768
+main   full stack (16k)                     acc 0.831 +- 0.016  AUC 0.850
+main   tx only (16k)                        acc 0.772 +- 0.008  AUC 0.851
+main   tx only (4k)                         acc 0.733 +- 0.013  AUC 0.800
+always robust small: 0.679
+small  seg alone                            acc 0.759 +- 0.017  AUC 0.738
+small  traj alone                           acc 0.738 +- 0.010  AUC 0.749
+small  attn alone                           acc 0.690 +- 0.006  AUC 0.675
+small  white-box (seg+traj+attn, nested)    acc 0.781 +- 0.018  AUC 0.777
+small  full stack (16k)                     acc 0.834 +- 0.021  AUC 0.855
+small  tx only (16k)                        acc 0.766 +- 0.012  AUC 0.830
+small  tx only (4k)                         acc 0.702 +- 0.012  AUC 0.782
+
+per model acc [np.str_('DeepSeek-R1-0528-Qwen3-8B'), np.str_('Olmo-3-7B-Think'), np.str_('Qwen3.5-4B'), np.str_('Skywork-OR1-Math-7B'), np.str_('gpt-oss-120b:high'), np.str_('gpt-oss-120b:low'), np.str_('gpt-oss-120b:medium')]
+seg alone    [0.646, 0.778, 0.825, 0.768, 0.843, 0.707, 0.817]
+traj alone   [0.767, 0.883, 0.746, 0.701, 0.847, 0.579, 0.82]
+attn alone   [0.717, 0.778, 0.688, 0.667, 0.867, 0.714, 0.667]

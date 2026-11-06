@@ -1,0 +1,78 @@
+gold key answer
+     right  wrong  unfinished  numchg
+out                                  
+FN      63      0          21       7
+FP      11      0           1       0
+TN     129      0           1       0
+TP      29      3          28       7
+     orig_med_tok  fail_rate  types
+out                                
+FN         5906.0       0.17    6.0
+FP         6581.0       0.25    3.0
+TN         3911.5       0.00    1.0
+TP         7010.0       0.50    5.0
+
+cap per model: {'DeepSeek-R1-0528': 8192, 'Skywork-OR1-Math': 8192}
+
+== stack errors, generated cases
+                                 out                mode  drop  types  orig_right  orig_n  orig_med_tok  right  wrong  unfinished  numchg  var_n  fail_rate
+case                                                                                                                                                       
+Skywork-OR1-Math-7B:84c96fbdf01d  FN   solved every time  0.50      6           4       4          4156     11      0           1       1     12       0.08
+Skywork-OR1-Math-7B:d03cff1d2f5f  FN   solved every time  0.50      6           4       4          5704     10      0           2       1     12       0.17
+Skywork-OR1-Math-7B:43a47a368257  FN   solved every time  0.50      6           4       4          5906     10      0           2       2     12       0.17
+Skywork-OR1-Math-7B:f8582ebf459f  FN   solved every time  0.50      6           4       4          4857     10      0           2       2     12       0.17
+Skywork-OR1-Math-7B:2347acb5eb3b  FN  finished within 4k  0.50      6           4       4          6162      9      0           3       0     12       0.25
+Skywork-OR1-Math-7B:0ad93fe26435  FN    solved sometimes  0.75      6           3       4          6629      7      0           5       1     12       0.42
+Skywork-OR1-Math-7B:357603fe2192  FN    solved sometimes  0.75      6           3       4          6593      6      0           6       0     12       0.50
+Skywork-OR1-Math-7B:c0aff28b8c4a  FP   solved every time  0.00      5           4       4          5241     10      0           0       0     10       0.00
+Skywork-OR1-Math-7B:3f2e57075a10  FP    solved sometimes  0.00      1           2       4          7921      1      0           1       0      2       0.50
+
+== caught fragile
+                                       out              mode  drop  types  orig_right  orig_n  orig_med_tok  right  wrong  unfinished  numchg  var_n  fail_rate
+case                                                                                                                                                           
+Skywork-OR1-Math-7B:ceaf79b0d8f5        TP  solved sometimes  0.25      6           3       4          5092     11      0           1       0     12       0.08
+Skywork-OR1-Math-7B:02103658ef10        TP  solved sometimes  0.75      6           3       4          7026     10      0           2       0     12       0.17
+Skywork-OR1-Math-7B:4884c0258b65        TP  solved sometimes  0.25      1           3       4          6916      1      0           1       0      2       0.50
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd  TP  solved sometimes  0.25      1           3       4          6411      1      0           1       0      2       0.50
+Skywork-OR1-Math-7B:556fcb223763        TP  solved sometimes  0.50      5           2       4          8164      3      0           7       1     10       0.70
+Skywork-OR1-Math-7B:af2372bd19e1        TP  solved sometimes  0.75      6           3       4          7010      2      3           7       3     12       0.83
+Skywork-OR1-Math-7B:b4dc7e5ecb38        TP  solved sometimes  0.50      5           2       4          8003      1      0           9       3     10       0.90
+
+== failed samples on missed fragile cases
+        case     type  variant       kind  answer  gold  tokens  numbers_changed
+d03cff1d2f5f    typos        0 unfinished     NaN   809    8192            False
+d03cff1d2f5f   expert        0 unfinished     NaN   809    8192             True
+2347acb5eb3b    typos        0 unfinished     NaN   540    8192            False
+2347acb5eb3b   rename        0 unfinished     NaN   540    8192            False
+2347acb5eb3b rephrase        0 unfinished     NaN   540    8192            False
+84c96fbdf01d   expert        0 unfinished     NaN   116    8192             True
+43a47a368257 distract        0 unfinished     NaN    13    8192             True
+43a47a368257 rephrase        0 unfinished     NaN    13    8192             True
+357603fe2192    typos        0 unfinished     NaN   468    8192            False
+357603fe2192    typos        0 unfinished     NaN   468    8192            False
+357603fe2192   expert        0 unfinished     NaN   468    8192            False
+357603fe2192   expert        0 unfinished     NaN   468    8192            False
+357603fe2192   rename        0 unfinished     NaN   468    8192            False
+357603fe2192 rephrase        0 unfinished     NaN   468    8192            False
+f8582ebf459f distract        0 unfinished     NaN    21    8192             True
+f8582ebf459f   expert        0 unfinished     NaN    21    8192             True
+0ad93fe26435 distract        0 unfinished     NaN   719    8192             True
+0ad93fe26435   domain        0 unfinished     NaN   719    8192            False
+0ad93fe26435   rename        0 unfinished     NaN   719    8192            False
+0ad93fe26435 rephrase        0 unfinished     NaN   719    8192            False
+0ad93fe26435 rephrase        0 unfinished     NaN   719    8192            False
+
+== share of failed samples by kind, fragile cases
+out  kind      
+FN   unfinished    21
+TP   unfinished    28
+     wrong          3
+
+== text of failed variants whose numbers changed, missed fragile
+d03cff1d2f5f expert: only original ['2024'] only variant ['0', '2', '45'] | 'Two players play the following game, starting with a counter that shows a positive integer $n$. The players alternate moves, and the first player moves first. On each mov'
+84c96fbdf01d expert: only original [] only variant [] | 'Jen enters a lottery by picking $4$ distinct numbers from $S=\\{1,2,3,\\cdots,9,10\\}.$ $4$ numbers are randomly chosen from $S.$ She wins a prize if at most two of her numb'
+43a47a368257 distract: only original [] only variant ['1806'] | 'Let $\\mathcal{R}$ be the region in the complex plane consisting of all complex numbers $z$ that can be written as the sum of complex numbers $z_1$ and $z_2$, where $z_1$ '
+43a47a368257 rephrase: only original [] only variant [] | 'Consider the region $\\mathcal{R}$ of the complex plane made up of all numbers of the form $z_1+z_2$, where $z_1$ is a point on the segment joining $3$ and $4i$ and $z_2$ '
+f8582ebf459f distract: only original [] only variant ['2.5'] | 'A right square pyramid with volume $54$ has a base with side length $6.$ The pyramid is made of glass with a density of $2.5$ grams per cubic centimeter. The five vertice'
+f8582ebf459f expert: only original ['54', '6'] only variant ['36', '92'] | 'A right pyramid has a square base of area $36$, and its apex is at distance $\\frac92$ from the plane of the base. The five vertices of the pyramid all lie on a sphere wit'
+0ad93fe26435 distract: only original [] only variant [] | 'Let $S$ be the set of all positive rational numbers $r$ such that when the two numbers $r$ and $55r$ are written as fractions in lowest terms, the sum of the numerator an'

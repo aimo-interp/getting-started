@@ -1,0 +1,72 @@
+thresholds shipped in stack-attn-pmt: {'Qwen/Qwen3.5-4B': 0.613, 'Skywork/Skywork-OR1-Math-7B': 0.539, 'allenai/Olmo-3-7B-Think': 0.548, 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B': 0.62, 'openai/gpt-oss-120b:high': 0.451, 'openai/gpt-oss-120b:low': 0.513, 'openai/gpt-oss-120b:medium': 0.614} default 0.56
+threshold per configuration: {np.str_('DeepSeek-R1-0528-Qwen3-8B'): 0.62, np.str_('Olmo-3-7B-Think'): 0.548, np.str_('Qwen3.5-4B'): 0.613, np.str_('Skywork-OR1-Math-7B'): 0.539, np.str_('gpt-oss-120b:high'): 0.451, np.str_('gpt-oss-120b:low'): 0.513, np.str_('gpt-oss-120b:medium'): 0.614}
+
+== accuracy at .5 and paired gains, bootstrap over problems
+always-robust main 0.703 small 0.679 (n small 81)
+main  attn FULL (tx)   0.831  tx only (tx)   0.772  white-box 0.797  full-tx +0.059 [+0.011, +0.114]  wb-tx +0.025 [-0.041, +0.096]  full-wb +0.034 [-0.010, +0.082]
+main  attn FULL (tx4)  0.804  tx only (tx4)  0.733  white-box 0.797  full-tx +0.071 [+0.024, +0.133]  wb-tx +0.063 [+0.009, +0.131]  full-wb +0.008 [-0.018, +0.035]
+small attn FULL (tx)   0.834  tx only (tx)   0.766  white-box 0.781  full-tx +0.068 [+0.016, +0.132]  wb-tx +0.015 [-0.061, +0.097]  full-wb +0.052 [+0.004, +0.107]
+small attn FULL (tx4)  0.777  tx only (tx4)  0.702  white-box 0.781  full-tx +0.074 [+0.017, +0.143]  wb-tx +0.079 [+0.013, +0.156]  full-wb -0.005 [-0.038, +0.028]
+
+== with the per-model thresholds shipped in the pmt zip (chosen on these labels: optimistic)
+main  attn FULL (tx)   0.835 vs tx@.5 0.772  thr-vs-thr tx 0.810  gain +0.025 [-0.037, +0.086]
+main  attn FULL (tx4)  0.836 vs tx@.5 0.733  thr-vs-thr tx 0.759  gain +0.078 [+0.033, +0.132]
+small attn FULL (tx)   0.835 vs tx@.5 0.766  thr-vs-thr tx 0.798  gain +0.038 [-0.042, +0.122]
+small attn FULL (tx4)  0.817 vs tx@.5 0.702  thr-vs-thr tx 0.723  gain +0.094 [+0.038, +0.155]
+
+== per configuration
+model                          n frag always  full  tx   wb | full4 tx4
+DeepSeek-R1-0528-Qwen3-8B       12   4 0.667 0.833 0.754 0.792 | 0.767 0.667
+Olmo-3-7B-Think                  9   2 0.778 0.961 1.000 0.783 | 0.717 0.778
+Qwen3.5-4B                      12   4 0.667 0.871 0.729 0.804 | 0.783 0.667
+Skywork-OR1-Math-7B             48  16 0.667 0.801 0.734 0.773 | 0.789 0.706
+gpt-oss-120b:high               15   2 0.867 0.723 0.800 0.853 | 0.833 0.777
+gpt-oss-120b:low                 7   2 0.714 0.693 0.571 0.700 | 0.714 0.579
+gpt-oss-120b:medium             15   5 0.667 0.983 0.867 0.867 | 0.967 0.930
+
+== errors, wrong in >= half of repeats
+attn FULL (tx)     missed fragile 15/35  false alarms 4/83
+tx only (tx)       missed fragile 22/35  false alarms 6/83
+attn -tx (tx)      missed fragile 20/35  false alarms 2/83
+attn FULL (tx4)    missed fragile 18/35  false alarms 4/83
+tx only (tx4)      missed fragile 26/35  false alarms 5/83
+
+== competence: labelgen cases with per-type data, base_acc = solved share of 4 samples on the original
+labelgen cases 38 fragile 14
+solved 4/4: n=25 fragile=5 share fragile 0.20 | full caught 0/5 mean p 0.73 | tx caught 0/5 | white-box caught 2/5
+solved <4/4: n=13 fragile=9 share fragile 0.69 | full caught 7/9 mean p 0.40 | tx caught 4/9 | white-box caught 6/9
+Fisher fragile share, 4/4 vs <4/4: 5/25 vs 9/13, p=0.005
+Fisher caught vs solved-4/4, fragile only: [[np.int64(0), np.int64(5)], [np.int64(7), np.int64(2)]] p=0.021
+
+AUC for robust (OOF prob averaged over repeats); labelgen cases by base accuracy
+solved 4/4 n=25 fragile=5 {'stack': 0.74, 'tx': 0.74, 'white-box': 0.72, 'seg': 0.68}
+solved <4/4 n=13 fragile=9 {'stack': 0.778, 'tx': 0.778, 'white-box': 0.694, 'seg': 0.611}
+all labelgen n=38 fragile=14 {'stack': 0.86, 'tx': 0.854, 'white-box': 0.804, 'seg': 0.762}
+solved-4/4 stack AUC 0.740, null 90% band [0.26, 0.75], P(null >= obs) 0.063
+missed vs caught fragile (full stack), MWU p:
+  max_drop   missed med 0.50 caught med 0.34 p=0.134
+  agree      missed med 1.00 caught med 0.75 p=0.094
+  anchor     missed med 6.75 caught med 5.25 p=0.138
+  tx_length  missed med 8.92 caught med 9.34 p=0.091
+  diff_last  missed med 0.57 caught med 0.55 p=0.395
+
+== trajectory direction (AUC for robust, higher feature = robust), and control for greedy length
+capped traces: 88 of 118 | robust share capped 0.64 uncapped 0.90
+capped share by model: {np.str_('DeepSeek-R1-0528-Qwen3-8B'): np.float64(1.0), np.str_('Olmo-3-7B-Think'): np.float64(1.0), np.str_('Qwen3.5-4B'): np.float64(1.0), np.str_('Skywork-OR1-Math-7B'): np.float64(0.71), np.str_('gpt-oss-120b:high'): np.float64(0.93), np.str_('gpt-oss-120b:low'): np.float64(0.0), np.str_('gpt-oss-120b:medium'): np.float64(0.47)}
+step_mean pooled 0.705 | capped only 0.682 {np.str_('DeepSeek-R1-0528-Qwen3-8B'): 0.69, np.str_('Olmo-3-7B-Think'): 0.57, np.str_('Qwen3.5-4B'): 0.78, np.str_('Skywork-OR1-Math-7B'): 0.7, np.str_('gpt-oss-120b:high'): 0.5, np.str_('gpt-oss-120b:low'): 0.8, np.str_('gpt-oss-120b:medium'): 0.94}
+norm_slope pooled 0.304 | capped only 0.313 {np.str_('DeepSeek-R1-0528-Qwen3-8B'): 0.25, np.str_('Olmo-3-7B-Think'): 0.36, np.str_('Qwen3.5-4B'): 0.53, np.str_('Skywork-OR1-Math-7B'): 0.24, np.str_('gpt-oss-120b:high'): 0.69, np.str_('gpt-oss-120b:low'): 0.6, np.str_('gpt-oss-120b:medium'): 0.02}
+Skywork: tokens AUC 0.315; capped n=34 frag=15
+  Skywork capped step_mean 0.723
+  Skywork capped norm_slope 0.263
+
+== leaderboard: exact binomial, P(score <= observed | true accuracy = CV at 4k)
+stack-attn main 1027309    14/21=0.67 CV 0.804  P=0.100
+stack-attn main 1027141    12/21=0.57 CV 0.804  P=0.013
+stack-attn small           8/14=0.57 CV 0.777  P=0.070
+transcript main            15/21=0.71 CV 0.741  P=0.472
+transcript small           11/14=0.79 CV 0.689  P=0.859
+14/21 Wilson 95% [0.45, 0.83]
+12/21 Wilson 95% [0.37, 0.76]
+15/21 Wilson 95% [0.50, 0.86]
+8/14 Wilson 95% [0.33, 0.79]
+11/14 Wilson 95% [0.52, 0.92]

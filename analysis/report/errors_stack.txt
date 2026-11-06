@@ -1,0 +1,125 @@
+== outcomes {'TN': 79, 'TP': 20, 'FN': 15, 'FP': 4} mean err rate on errors 0.91
+always wrong 13 | wrong in 50-80% 4 | right cases wrong in 20-50% 4
+
+== by configuration
+out               TP  FN  FP  TN
+model                           
+DeepSeek-R1-0528   3   1   0   8
+Olmo-3-7B-Think    2   0   0   7
+Qwen3.5-4B         2   2   0   8
+Skywork-OR1-Math   8   8   2  30
+gpt-oss:high       0   2   2  11
+gpt-oss:low        0   2   0   5
+gpt-oss:medium     5   0   0  10
+
+== by mode
+out                    TP  FN  FP  TN
+mode                                 
+finished within 4k      0   3   0  27
+never finished at 16k   4   4   1   9
+solved every time       2   5   1  29
+solved sometimes       14   3   2  14
+
+== by source
+out            TP  FN  FP  TN
+source                       
+labelgen        7   7   2  22
+train-main-v2  13   8   2  57
+
+== by topic
+out            TP  FN  FP  TN
+topic                        
+combinatorics   1   2   0   2
+geometry        8   5   2  25
+number         10   7   1  42
+other           1   1   1  10
+
+== by drop
+out          FN  TP
+max_drop           
+(0.0, 0.3]    2   9
+(0.3, 0.5]    9   6
+(0.5, 1.01]   4   5
+
+== all 19 errors
+                                       out             model                   mode         source          topic  solve  tokens  max_drop  agree  err_rate  p_stack blocks_right variants
+case_id                                                                                                                                                                                   
+Skywork-OR1-Math-7B:2347acb5eb3b        FN  Skywork-OR1-Math     finished within 4k       labelgen          other   1.00    4062      0.50   1.00      1.00     0.95                   3/6
+gpt-oss-120b:low:f7b4a98af9dd           FN       gpt-oss:low     finished within 4k  train-main-v2       geometry   1.00    1918      0.25   1.00      1.00     0.76                      
+gpt-oss-120b:low:7443669f7e90           FN       gpt-oss:low     finished within 4k  train-main-v2         number   1.00    1865      0.43   1.00      1.00     0.66                      
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  FN  DeepSeek-R1-0528  never finished at 16k  train-main-v2         number   0.00    4096      0.40   0.00      1.00     0.79                      
+Qwen3.5-4B:f02e2f662264                 FN        Qwen3.5-4B  never finished at 16k  train-main-v2         number   0.00    4096      0.27   0.00      0.50     0.52            S         
+Qwen3.5-4B:7ee9d4437899                 FN        Qwen3.5-4B  never finished at 16k  train-main-v2         number   0.00    4096      0.40   0.00      1.00     0.67                      
+gpt-oss-120b:high:a09aac07cb64          FN      gpt-oss:high  never finished at 16k  train-main-v2       geometry   0.00    4094      0.40   0.00      1.00     0.83            X         
+Skywork-OR1-Math-7B:7ee9d4437899        FN  Skywork-OR1-Math      solved every time  train-main-v2         number   1.00    4096      1.00   1.00      1.00     0.82                      
+Skywork-OR1-Math-7B:d03cff1d2f5f        FN  Skywork-OR1-Math      solved every time       labelgen  combinatorics   1.00    4096      0.50   1.00      1.00     0.77                   2/6
+Skywork-OR1-Math-7B:84c96fbdf01d        FN  Skywork-OR1-Math      solved every time       labelgen  combinatorics   1.00    4096      0.50   1.00      1.00     0.84                   1/6
+Skywork-OR1-Math-7B:43a47a368257        FN  Skywork-OR1-Math      solved every time       labelgen       geometry   1.00    4096      0.50   1.00      0.70     0.57            S      2/6
+Skywork-OR1-Math-7B:f8582ebf459f        FN  Skywork-OR1-Math      solved every time       labelgen       geometry   1.00    4096      0.50   1.00      0.50     0.53           ST      2/6
+Skywork-OR1-Math-7B:357603fe2192        FN  Skywork-OR1-Math       solved sometimes       labelgen       geometry   0.75    4096      0.75   1.00      0.90     0.57                   4/6
+Skywork-OR1-Math-7B:0ad93fe26435        FN  Skywork-OR1-Math       solved sometimes       labelgen         number   0.75    4096      0.75   0.88      0.95     0.76                   4/6
+gpt-oss-120b:high:757506c4e1d1          FN      gpt-oss:high       solved sometimes  train-main-v2         number   0.88    4094      0.59   0.88      1.00     0.72                      
+gpt-oss-120b:high:9dd85c12874d          FP      gpt-oss:high  never finished at 16k  train-main-v2         number   0.00    4094      0.10   0.00      1.00     0.30          STA         
+Skywork-OR1-Math-7B:c0aff28b8c4a        FP  Skywork-OR1-Math      solved every time       labelgen          other   1.00    4096      0.00   1.00      0.65     0.48          TAX      0/5
+Skywork-OR1-Math-7B:3f2e57075a10        FP  Skywork-OR1-Math       solved sometimes       labelgen       geometry   0.50    4096      0.00   1.00      1.00     0.23           TA      0/1
+gpt-oss-120b:high:51697b0daa5c          FP      gpt-oss:high       solved sometimes  train-main-v2       geometry   0.12    4094      0.10   0.12      1.00     0.34          STA         
+
+== errors with no block individually right: 11 of 19 | FN with tx right 1
+repeat problems among errors: {'7ee9d4437899': 3, 'f02e2f662264': 1, 'd03cff1d2f5f': 1, '2347acb5eb3b': 1, '84c96fbdf01d': 1}
+
+[FN] Skywork-OR1-Math-7B:2347acb5eb3b | 'Find the largest possible real part of \\[(75+117i)z+\\frac{96+144i}{z}\\]where $z$ is a complex number with $|z|=4$.'
+   END: 'ind the maximum value, we use the fact that the maximum value of \\(A \\cos\\theta + B \\sin\\theta\\) is \\(\\sqrt{A^2 + B^2}\\):\n\n\\[\n\\sqrt{324^2 + (-432)^2} = \\sqrt{104976 + 186624} = \\sqrt{291600} = 540\n\\]\n\nThus, the largest possible real part is:\n\n\\[\n\\boxed{540}\n\\]'
+
+[FN] gpt-oss-120b:low:f7b4a98af9dd | 'Let $\\triangle ABC$ be a triangle with $D$ on $\\overline{BC}$ such that $\\overline{AD}$ bisects $\\angle BAC.$ Let $\\omega$ be the circle that passes t'
+   END: '\\\\\n2 & 168 & 189 & 80 & 90\\\\\n3 & 128 & 144 &120 &135\\\\\n4 &  72 &  81 &160 &180\n\\end{array}\n\\]\n\nThus the possible values of \\(BC\\) are  \n\n\\[\nBC = 85m = 85,\\;170,\\;255,\\;340.\n\\]\n\n---\n\n### Sum of all possible \\(BC\\)\n\n\\[\n85+170+255+340 = 850.\n\\]\n\n\\[\n\\boxed{850}\n\\]'
+
+[FN] gpt-oss-120b:low:7443669f7e90 | 'Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} + \\frac{1}{99} + \\frac{1}{999} + \\frac{1}{9999}  + \\cdots\n\\]\nFind the remainder when the g'
+   END: 'd{aligned}\n\\]\n\nTherefore  \n\n\\[\n\\big\\lfloor 10^{100}S\\big\\rfloor \\equiv\n6\\cdot10^{2}+6\\cdot10^{1}+9\\cdot10^{0}\n=600+60+9=669 \\pmod{1000}.\n\\]\n\nSo the remainder when \\(\\displaystyle\\big\\lfloor 10^{100}S\\big\\rfloor\\) is divided by \\(1000\\) is  \n\n\\[\n\\boxed{669}.\n\\]'
+
+[FN] Qwen3.5-4B:f02e2f662264 | 'Define a function $f \\colon \\mathbb{Z}_{\\geq 1} \\to \\mathbb{Z}_{\\geq 1}$ by\n\\begin{equation*}\n    f(n) = \\sum_{i = 1}^n \\sum_{j = 1}^n j^{3272} \\left\\'
+   END: 'v_2(S_p)$.\nSince $p$ is odd, $p^K - 1$ is even.\nAlso $p^{8K} - 1$ is even.\nLet $x = p^K$. Then $S_p = \\frac{x^8 - 1}{x - 1} = 1 + x + x^2 + \\dots + x^7$.\nWe want $v_2(S_p)$.\nWe know $v_2(x-1) = v_2(p^K - 1)$.\nWe know $v_2(x^8 - 1) = v_2(p^{8K} - 1)$.\nUsing LTE'
+
+[FN] Qwen3.5-4B:7ee9d4437899 | 'Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $N$.'
+   END: 'ct again.\nIf $a$ even, $e$ even: $7^a \\equiv 1$, $5^e \\equiv 1$. Product is $(-1)^b$.\nWe want $(-1)^b \\equiv 5 \\pmod{12}$. Impossible.\nIf $a$ odd, $e$ odd: $7^a \\equiv 7$, $5^e \\equiv 5$. Product is $7 \\cdot (-1)^b \\cdot 5 = 35 (-1)^b \\equiv 11 (-1)^b$.\nIf $b$'
+
+[FN] DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899 | 'Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $N$.'
+   END: "or, when c=0, it's still a divisor, but d = 7^a * 11^b * 13^0 * 17^e = 7^a * 11^b * 17^e, which is fine, as long as the exponents are within range.\n\nAnd the congruence condition is satisfied regardless of c, as we saw.\n\nBut is there any divisor that is counted"
+
+[FN] gpt-oss-120b:high:a09aac07cb64 | 'Let $ABC$ be a triangle with $BC=108$, $CA=126$, and $AB=39$. Point $X$ lies on segment $AC$ such that $BX$ \nbisects $\\angle CBA$. Let $\\omega$ be the'
+   END: '.\n\nThus equation: 1911 D + 3 S E = -109,512. (Equation B)\n\nNow we have two linear equations in D and E:\n\n-299 D + S E = -36,504. (A)\n1911 D + 3 S E = -109,512. (B)\n\nWe can solve for D and E.\n\nLet’s solve for E from (A): S E = -36,504 + 299 D => E = (-36,504 + '
+
+[FN] Skywork-OR1-Math-7B:7ee9d4437899 | 'Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $N$.'
+   END: "er of quadruples is1458*18.\n\nWait, but hold on. Is that correct? Because in the beginning, we considered that the product modulo12 depends only on a,b,d, and c doesn't affect it. So, for each valid (a,b,d), any c is acceptable. So, yes, for each valid (a,b,d),"
+
+[FN] Skywork-OR1-Math-7B:d03cff1d2f5f | 'Alice and Bob play the following game. A stack of $n$ tokens lies before them. The players take turns with Alice going first. On each turn, the player'
+   END: 'rs ≡0 mod5 (5 to2020) and405 numbers≡2 mod5 (2 to2022). Total809.\n\nWait, but wait, 2024 divided by5 is404.8, so the number of terms for ≡2 mod5 is405 because it includes2,7,...,2022.\n\nWait, let me compute it differently.\n\nFor numbers ≡0 mod5: the sequence is5,'
+
+[FN] Skywork-OR1-Math-7B:84c96fbdf01d | 'Jen enters a lottery by picking $4$ distinct numbers from $S=\\{1,2,3,\\cdots,9,10\\}.$ $4$ numbers are randomly chosen from $S.$ She wins a prize if at '
+   END: ' = 4 * 6 / 210 = 24 / 210.\n\nP(X=4) = C(4,4) * C(6,0) / C(10,4) = 1 * 1 / 210 = 1 / 210.\n\nAdding them up: 90 + 24 + 1 = 115. So, 115 / 210 = 23 / 42.\n\nSo, P(Prize) = 23/42.\n\nP(Grand Prize) is P(X=4) = 1 / 210.\n\nTherefore, the conditional probability is (1 / 210'
+
+[FN] Skywork-OR1-Math-7B:43a47a368257 | 'Let $\\mathcal{R}$ be the region in the complex plane consisting of all complex numbers $z$ that can be written as the sum of complex numbers $z_1$ and'
+   END: "isk is always a convex region, specifically a rectangle with semicircular ends, regardless of the orientation of the segment. The rotation doesn't affect the area, only the shape's orientation.\n\nSo, the area remains the same: length times twice the radius plus"
+
+[FN] Skywork-OR1-Math-7B:f8582ebf459f | 'A right square pyramid with volume $54$ has a base with side length $6.$ The five vertices of the pyramid all lie on a sphere with radius $\\frac mn$, '
+   END: "its along x-axis, which is correct, and the distance between (-3, 3, 0) and (-3, -3, 0) is 6 units along y-axis, which is correct. So yes, that's correct. Each side is 6 units, so that's correct.\n\nWait, but then the distance between (3, 3, 0) and (3, -3, 0) is"
+
+[FN] Skywork-OR1-Math-7B:357603fe2192 | 'Let $\\triangle ABC$ have circumcenter $O$ and incenter $I$ with $\\overline{IA}\\perp\\overline{OI}$, circumradius $13$, and inradius $6$. Find $AB\\cdot '
+   END: 'ius, which is 6.\n\nWait, but how does that help us? Maybe we can relate it to the coordinates.\n\nLet me denote line BC as passing through points B(x_B, y_B) and C(x_C, y_C). The equation of line BC can be written as:\n\n(y - y_B) = m(x - x_B), where m is the slope'
+
+[FN] Skywork-OR1-Math-7B:0ad93fe26435 | 'Let $S$ be the set of all positive rational numbers $r$ such that when the two numbers $r$ and $55r$ are written as fractions in lowest terms, the sum'
+   END: 'g.\n\nSo, either a + b = (55a + b)/g or (55a + b)/g = a + b.\n\nWait, but these are the same equation. So, a + b = (55a + b)/g.\n\nMultiply both sides by g: g(a + b) = 55a + b.\n\nWhich is the same equation as before: ga + gb = 55a + b.\n\nRearranged: a(g - 55) + b(g - '
+
+[FN] gpt-oss-120b:high:757506c4e1d1 | 'For integers $a$ and $b,$ let $a \\circ b = a - b$ if $a$ is odd and $b$ is even, and $a+b$ otherwise. Find the number of sequences $a_1, a_2, a_3, \\ld'
+   END: 'satisfied.\n\nThus the number of sequences is equal to the number of compositions of 10 into positive even parts.\n\nNow we need to count the number of compositions of 10 into positive even integers.\n\nLet’s define each even part as 2 * x_i, where x_i >= 1 integer.'
+
+[FP] gpt-oss-120b:high:9dd85c12874d | 'The $27$ cells of a $3 \\times 9$ grid are filled in using the numbers $1$ through $9$ so that each row contains $9$ different numbers, and each of the'
+   END: 'e of size 9"? Let\'s formalize.\n\nDefine a 3x3 array of cells. For each number k in {1..9}, we assign a permutation sigma_k in S_3. Then we place k in cell (i, sigma_k(i)) for each i. So each number appears exactly once in each row and column. The condition that'
+
+[FP] Skywork-OR1-Math-7B:c0aff28b8c4a | 'Consider the paths of length $16$ that follow the lines from the lower left corner to the upper right corner on an $8\\times 8$ grid. Find the number o'
+   END: " moves, then up for (2 - k) moves? Wait, no, total right moves are 2, so if first segment is k right moves, then the remaining right moves are 2 - k, but we switched to up moves after the first segment. Wait, this is getting confusing.\n\nWait, maybe it's better"
+
+[FP] Skywork-OR1-Math-7B:3f2e57075a10 | 'A circle with radius $6$ is externally tangent to a circle with radius $24$. Find the area of the triangular region bounded by the three common tangen'
+   END: ") + (-7.5) = 22.5 -7.5 = 15\n\nWhich should be equal to -24 sqrt(m^2 + 1) = -30. 15 ≠ -30, so that doesn't work.\n\nSo, the two possible slopes are m = 3/4 and m = -3/4, but with c = 7.5 and c = -7.5 respectively.\n\nWait, but earlier when we took c positive, m = 3/"
+
+[FP] gpt-oss-120b:high:51697b0daa5c | 'Consider a tetrahedron with two isosceles triangle faces with side lengths $5\\sqrt{10}, 5\\sqrt{10},$ and $10$ and two isosceles triangle faces with si'
+   END: 'h the midpoint of AB and the midpoint of CD? Actually there might be a 180-degree rotation about the line connecting the midpoints of AB and CD (the line perpendicular to plane P? Wait, the midpoints of AB and CD both lie on plane P? The midpoint of AB lies on'

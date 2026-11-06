@@ -1,0 +1,15 @@
+repeat 1/20repeat 2/20repeat 3/20repeat 4/20repeat 5/20repeat 6/20repeat 7/20repeat 8/20repeat 9/20repeat 10/20repeat 11/20repeat 12/20repeat 13/20repeat 14/20repeat 15/20repeat 16/20repeat 17/20repeat 18/20repeat 19/20repeat 20/20
+method                                       acc      Δacc paired    auc    Δauc  logloss     Δll
+seg_safe                           0.7742±0.017 +0.0000±0.0000 0.727 +0.000  0.5336 +0.0000
+seg_notopic                        0.7199±0.013 -0.0542±0.0190 0.677 -0.050  0.5740 +0.0405
+seg_notopic4                       0.7267±0.013 -0.0475±0.0166 0.652 -0.075  0.5802 +0.0466
+
+per-model accuracy (mean over repeats); Δ vs base
+                                   DeepSeek-R1-  Olmo-3-7B-Th    Qwen3.5-4B  Skywork-OR1-  gpt-oss-120b  gpt-oss-120b  gpt-oss-120b
+seg_safe                           0.646(+0.00)  0.778(+0.00)  0.825(+0.00)  0.768(+0.00)  0.843(+0.00)  0.707(+0.00)  0.817(+0.00)
+seg_notopic                        0.604(-0.04)  0.778(+0.00)  0.696(-0.13)  0.675(-0.09)  0.840(-0.00)  0.714(+0.01)  0.823(+0.01)
+seg_notopic4                       0.604(-0.04)  0.778(+0.00)  0.696(-0.13)  0.694(-0.07)  0.840(-0.00)  0.714(+0.01)  0.817(+0.00)
+
+prediction flips vs base (per repeat, mean): right->wrong / wrong->right / total cases
+seg_notopic                         8.10 /  1.70 / 118
+seg_notopic4                        7.80 /  2.20 / 118

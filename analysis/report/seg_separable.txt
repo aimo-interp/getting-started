@@ -1,0 +1,51 @@
+null: 1000 shuffles or exact; 5 repeats; p_hi = P(null >= observed), p_lo = P(null <= observed)
+== Skywork-OR1-Math-7B: n=48 robust 32 fragile 16 capped 34 (fragile 15), k=5, 1000 labelings
+  E+L AUC 0.787  null median 0.507  90% [0.266,0.684]  p_hi 0.0020  p_lo 0.9990
+  best site E+L AUC 0.787  null best median 0.643  p 0.0230
+  perfect split on mean score: False; fragile above lowest robust 15/16; best-threshold acc (in-sample) 0.812, majority 0.667
+  hit-the-cap alone AUC 0.672 (fragile capped 15/16, robust capped 19/32); corr score ~ tokens -0.55
+  capped AUC 0.737 p 0.0210 | capped, log chars removed AUC 0.726 p 0.0220
+== Qwen3.5-4B: n=12 robust 8 fragile 4 capped 12 (fragile 4), k=4, 495 labelings
+  E+L AUC 0.969  null median 0.531  90% [0.094,0.875]  p_hi 0.0121  p_lo 0.9940
+  best site E+L AUC 0.969  null best median 0.812  p 0.0968
+  perfect split on mean score: False; fragile above lowest robust 1/4; best-threshold acc (in-sample) 0.917, majority 0.667
+  hit-the-cap alone AUC 0.500 (fragile capped 4/4, robust capped 8/8); corr score ~ tokens nan
+  capped AUC 0.969 p 0.0121 | capped, log chars removed AUC 0.938 p 0.0262
+== DeepSeek-R1-0528-Qwen3-8B: n=12 robust 8 fragile 4 capped 12 (fragile 4), k=4, 495 labelings
+  E+L AUC 0.250  null median 0.500  90% [0.094,0.844]  p_hi 0.8286  p_lo 0.2016
+  best site d9 AUC 0.875  null best median 0.812  p 0.3024
+  perfect split on mean score: False; fragile above lowest robust 4/4; best-threshold acc (in-sample) 0.667, majority 0.667
+  hit-the-cap alone AUC 0.500 (fragile capped 4/4, robust capped 8/8); corr score ~ tokens nan
+  capped AUC 0.250 p 0.8286 | capped, log chars removed AUC 0.219 p 0.8407
+== Olmo-3-7B-Think: n=9 robust 7 fragile 2 capped 9 (fragile 2), k=2, 36 labelings
+  E+L AUC 0.857  null median 0.500  90% [0.000,1.000]  p_hi 0.1892  p_lo 0.9189
+  best site d1 AUC 1.000  null best median 0.964  p 0.5135
+  perfect split on mean score: False; fragile above lowest robust 2/2; best-threshold acc (in-sample) 0.889, majority 0.778
+  hit-the-cap alone AUC 0.500 (fragile capped 2/2, robust capped 7/7); corr score ~ tokens nan
+  capped AUC 0.857 p 0.1892 | capped, log chars removed AUC 0.786 p 0.2432
+== gpt-oss-120b:high: n=15 robust 13 fragile 2 capped 14 (fragile 2), k=2, 105 labelings
+  E+L AUC 0.000  null median 0.500  90% [0.000,0.962]  p_hi 1.0000  p_lo 0.1698
+  best site d1 AUC 0.615  null best median 0.885  p 0.9151
+  perfect split on mean score: False; fragile above lowest robust 2/2; best-threshold acc (in-sample) 0.867, majority 0.867
+  hit-the-cap alone AUC 0.538 (fragile capped 2/2, robust capped 12/13); corr score ~ tokens -0.16
+  capped AUC 0.000 p 1.0000 | capped, log chars removed AUC 0.000 p 1.0000
+== gpt-oss-120b:medium: n=15 robust 10 fragile 5 capped 7 (fragile 5), k=5, 3003 labelings
+  E+L AUC 0.980  null median 0.480  90% [0.080,0.820]  p_hi 0.0023  p_lo 0.9997
+  best site d7 AUC 0.980  null best median 0.740  p 0.0123
+  perfect split on mean score: False; fragile above lowest robust 1/5; best-threshold acc (in-sample) 0.933, majority 0.667
+  hit-the-cap alone AUC 0.900 (fragile capped 5/5, robust capped 2/10); corr score ~ tokens -0.73
+  capped AUC 1.000 p 0.0383 | capped, log chars removed AUC 0.800 p 0.1143
+== gpt-oss-120b:low: n=7 robust 5 fragile 2 capped 0 (fragile 0), k=2, 21 labelings
+  E+L AUC 0.400  null median 0.600  90% [0.000,1.000]  p_hi 0.6364  p_lo 0.5000
+  best site d2 AUC 0.800  null best median 1.000  p 0.9091
+  perfect split on mean score: False; fragile above lowest robust 2/2; best-threshold acc (in-sample) 0.714, majority 0.714
+  hit-the-cap alone AUC 0.500 (fragile capped 0/2, robust capped 0/5); corr score ~ tokens -0.11
+  capped AUC nan p nan | capped, log chars removed AUC nan p nan
+Holm-adjusted p_hi, E+L: {'Skywork-OR1-Math-7B': 0.014, 'Qwen3.5-4B': 0.06, 'DeepSeek-R1-0528-Qwen3-8B': 1.0, 'Olmo-3-7B-Think': 0.757, 'gpt-oss-120b:high': 1.0, 'gpt-oss-120b:medium': 0.014, 'gpt-oss-120b:low': 1.0}
+== transfer across gpt-oss efforts (same model, same space; train problems exclude test problems; E+L)
+  high   -> medium train n=5 fragile 1 | test n=15 fragile 5 | AUC 0.220
+  high   -> low    train n=9 fragile 2 | test n=7 fragile 2 | AUC 0.300
+  medium -> high   train n=5 fragile 4 | test n=15 fragile 2 | AUC 0.615
+  medium -> low    train n=9 fragile 5 | test n=7 fragile 2 | AUC 0.900
+  low    -> high   train n=1 has one class, skipped
+  low    -> medium train n=1 has one class, skipped

@@ -1,0 +1,20 @@
+== Skywork: attention on 48 of 48 cases, robust 32, fragile 16, capped 34 (fragile 15)
+late sink+template mean R 0.170 F 0.148; AUC robust 0.787 p=0.0012
+far 1-9 mean R 0.301 F 0.316; AUC fragile-higher 0.703 p=0.0232
+corr late sink ~ tokens -0.96 | ~ log problem chars -0.27
+capped: late sink AUC 0.691 p=0.0574; problem chars removed AUC 0.537 p=0.7395
+== Olmo: attention on 9 of 9 cases, robust 7, fragile 2, capped 9 (fragile 2)
+late sink+template mean R 0.090 F 0.084; AUC robust 0.857 p=0.2222
+far 1-9 mean R 0.479 F 0.473; AUC fragile-higher 0.429 p=0.8884
+corr late sink ~ tokens n/a | ~ log problem chars -0.82
+capped: late sink AUC 0.857 p=0.2252; problem chars removed AUC 0.857 p=0.2204
+== DeepSeek: attention on 12 of 12 cases, robust 8, fragile 4, capped 12 (fragile 4)
+late sink+template mean R 0.416 F 0.411; AUC robust 0.625 p=0.5736
+far 1-9 mean R 0.227 F 0.215; AUC fragile-higher 0.344 p=0.4671
+corr late sink ~ tokens n/a | ~ log problem chars -0.29
+capped: late sink AUC 0.625 p=0.5700; problem chars removed AUC 0.469 p=0.9322
+== Qwen3.5: attention on 12 of 12 cases, robust 8, fragile 4, capped 12 (fragile 4)
+late sink+template mean R 0.030 F 0.029; AUC robust 0.625 p=0.5684
+far 1-9 mean R 0.546 F 0.571; AUC fragile-higher 0.719 p=0.2790
+corr late sink ~ tokens n/a | ~ log problem chars -0.42
+capped: late sink AUC 0.625 p=0.5672; problem chars removed AUC 0.500 p=1.0000

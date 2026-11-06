@@ -1,7 +1,0 @@
-{"version":"2.1.0","source":"loop","timestamp":"2026-10-29T01:54:14+11:00","status":"BOUNDED","results_tsv":"autoresearch/loop-261029-0145/results.tsv",
- "findings":["Label-free CoT trajectory features (log mean segment step size, norm slope over segments 0-8 at layer frac .5) alone: cv .756, AUC .748 (> seg_probe .696), DeepSeek .800 (probe ~.58)",
-  "Stacked with seg_probe 0-5/5-9: cv .783 (+.007 over .776, inside cv_std .016), AUC .712, organiser-only .790 vs always_true .738",
-  "Signal survives regressing out log response length (step_mean resid AUC .66, norm_slope .66)",
-  "Direction: robust traces move MORE between segments and their state norm shrinks over the CoT (opposite of the commit-early hypothesis)",
-  "Feature set was chosen from univariate AUCs on all labels: mildly post hoc, confirm on new cases"],
- "config":{"goal":"new robustness technique: CoT trajectory geometry","scope":"cvbench/traj.py","metric":"cv_score (20x5 grouped CV, 118 cases)","direction":"higher_is_better","verify":"autoresearch/loop-261029-0145/verify.sh"}}

@@ -1,3 +1,0 @@
-{"version":"2.1.0","source":"loop","timestamp":"2026-10-31T02:59:50+11:00","status":"BOUNDED","results_tsv":"autoresearch/loop-261031-0245/results.tsv",
-"findings":["seg probe is at a local optimum over layers/windows/LDA/multi-layer","per-model DIM inverts where a model has <=4 fragile training cases (gpt-oss high/low, DeepSeek): gating windows by inner-CV AUC>=0.6 fixes it, +0.014 seg+traj, +0.025 stack at tx 4k","tuned thresholds and E2H difficulty raise AUC but not accuracy","tx extra features and greedy-sample agreement flat","stack-probe zip rebuilt with the gate"],
-"config":{"goal":"stack acc > 0.812","scope":"cvbench/*.py","metric":"cv acc","direction":"higher_is_better","verify":"pyine python cvbench/stack.py --blocks seg_safe traj tx --repeats 20"}}

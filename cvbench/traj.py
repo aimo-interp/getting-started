@@ -74,6 +74,11 @@ def seg_traj(cases, args):
     return Z, predict
 
 
+def describe() -> str:
+    return (f"CoT trajectory geometry {'+'.join(FEATS)} at layer frac {FRAC}, segments 0-{END - 1}"
+            f"{' + seg_probe 0-5/5-9' if WITH_PROBE else ''}; logistic C={C}")
+
+
 def seg_probe_baseline(cases, args):
     acts = wb.load_acts(cases, cv)
     y = cases.is_robust.astype(bool).to_numpy()
@@ -103,8 +108,7 @@ def main() -> None:
     res = cv.evaluate(cases, predict or cv.logistic_predictor(Z, y, C), args.repeats, score_mask=mask)
     print(f"seg_traj   acc={res['cv_score']:.4f} auc={res['auc']:.4f} bacc={res['balanced_acc']:.4f}  {res['per_model']}")
     print(f"METRIC {res['cv_score']:.4f}\nAUC {res['auc']:.4f}")
-    hyper = (f"CoT trajectory geometry {'+'.join(FEATS)} at layer frac {FRAC}, segments 0-{END - 1}"
-             f"{' + seg_probe 0-5/5-9' if WITH_PROBE else ''}; logistic C={C}")
+    hyper = describe()
     if args.score_sources:
         hyper += f"; SCORED ON sources={','.join(args.score_sources)} ({int(mask.sum())} cases)"
     rows.append({"method": "seg_traj", "type": "whitebox", "hyperparams": hyper, "n_cases": len(cases), **res})

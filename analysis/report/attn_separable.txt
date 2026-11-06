@@ -1,0 +1,39 @@
+== Skywork: n=48 robust 32 fragile 16 capped 34
+  region                 78 feats | best 0.812 (first d8, robust higher) | perfect splits 0 | null best median 0.691 | p(max) 0.013
+  head                 2688 feats | best 0.865 (layer#5 head14 d6-9 first, robust higher) | perfect splits 0 | null best median 0.779 | p(max) 0.015
+  held-out selected feature AUC: region 0.755  head 0.643
+  region adj             78 feats | best 0.726 (far d4, fragile higher) | perfect splits 0 | null best median 0.726 | p(max) 0.508
+  head adj             2688 feats | best 0.846 (layer#4 head3 d1-5 far, robust higher) | perfect splits 0 | null best median 0.825 | p(max) 0.299
+  held-out adj: region 0.499  head 0.531
+== Olmo: n=9 robust 7 fragile 2 capped 9
+  region                 78 feats | best 1.000 (template d6, robust higher) | perfect splits 3 | null best median 1.000 | p(max) 0.757
+  head                 3456 feats | best 1.000 (layer#0 head0 d1-5 problem, robust higher) | perfect splits 287 | null best median 1.000 | p(max) 1.000
+  held-out selected feature AUC: region 0.243  head 0.736
+  region adj             78 feats | best 1.000 (problem d1, robust higher) | perfect splits 12 | null best median 1.000 | p(max) 0.811
+  head adj             3456 feats | best 1.000 (layer#0 head0 d1-5 problem, robust higher) | perfect splits 451 | null best median 1.000 | p(max) 1.000
+  held-out adj: region 0.868  head 0.643
+== DeepSeek: n=12 robust 8 fragile 4 capped 12
+  region                 78 feats | best 0.906 (first d5, robust higher) | perfect splits 0 | null best median 0.906 | p(max) 0.657
+  head                 3840 feats | best 1.000 (layer#0 head19 d6-9 first, robust higher) | perfect splits 23 | null best median 1.000 | p(max) 0.986
+  held-out selected feature AUC: region 0.481  head 0.292
+  region adj             78 feats | best 0.906 (first d5, robust higher) | perfect splits 0 | null best median 0.906 | p(max) 0.659
+  head adj             3840 feats | best 1.000 (layer#0 head4 d1-5 recent, fragile higher) | perfect splits 18 | null best median 1.000 | p(max) 0.931
+  held-out adj: region 0.408  head 0.759
+== Qwen3.5: n=12 robust 8 fragile 4 capped 12
+  region                 78 feats | best 0.938 (template d4, robust higher) | perfect splits 0 | null best median 0.938 | p(max) 0.522
+  head                  576 feats | best 1.000 (layer#4 head7 d1-5 template, robust higher) | perfect splits 2 | null best median 1.000 | p(max) 0.520
+  held-out selected feature AUC: region 0.509  head 0.505
+  region adj             78 feats | best 0.969 (template all, robust higher) | perfect splits 0 | null best median 0.938 | p(max) 0.347
+  head adj              576 feats | best 1.000 (layer#0 head4 d1-5 template, robust higher) | perfect splits 7 | null best median 0.969 | p(max) 0.486
+  held-out adj: region 0.684  head 0.713
+== shared pattern: correlation of region-level AUC profiles (length-adjusted)
+[[ 1.    0.02 -0.06  0.09]
+ [ 0.02  1.    0.45 -0.08]
+ [-0.06  0.45  1.   -0.32]
+ [ 0.09 -0.08 -0.32  1.  ]]
+['Skywork', 'Olmo', 'DeepSeek', 'Qwen3.5']
+leave-one-model-out: feature chosen on the other three, AUC on the held-out model (length-adjusted)
+  Skywork   problem d9               robust higher, others mean 0.854, held-out 0.502
+  Olmo      first d5                 robust higher, others mean 0.704, held-out 0.286
+  DeepSeek  problem d10              robust higher, others mean 0.759, held-out 0.562
+  Qwen3.5   problem d8               robust higher, others mean 0.808, held-out 0.312

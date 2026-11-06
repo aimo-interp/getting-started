@@ -1,0 +1,38 @@
+capped 88 of 118
+decile OOF AUC [0.661 0.639 0.657 0.742 0.608 0.689 0.647 0.727 0.723 0.695] windows {'early': 0.676, 'late': 0.689} E+L 0.706
+null 90% band mean [0.361 0.613] p per decile [0.    0.02  0.01  0.    0.06  0.    0.015 0.    0.    0.   ]
+per config OOF AUC {'DeepSeek-R1-0528-Qwen3-8B': 0.28, 'Olmo-3-7B-Think': 0.79, 'Qwen3.5-4B': 0.97, 'Skywork-OR1-Math-7B': 0.79, 'gpt-oss-120b:high': 0.0, 'gpt-oss-120b:low': 0.4, 'gpt-oss-120b:medium': 0.98}
+step_mean AUC 0.705 (capped 0.682) | falling norm_slope AUC 0.696 (capped 0.687)
+mean region mass [0.1   0.104 0.125 0.316 0.355]
+sink whole: AUC 0.748 p=0.0051 | capped n=34 frag=15 AUC 0.649
+sink late 6-9: AUC 0.787 p=0.0012 | capped n=34 frag=15 AUC 0.691
+far 1-9 (fragile higher): AUC 0.703 p=0.0233 | capped n=34 frag=15 AUC 0.582
+problem whole: AUC 0.422 p=0.3932 | capped n=34 frag=15 AUC 0.414
+sink by decile AUC [0.61 0.67 0.66 0.73 0.71 0.75 0.74 0.81 0.75 0.74]
+far by decile AUC (fragile higher) [0.59 0.62 0.63 0.76 0.65 0.71 0.65 0.64 0.62 0.65]
+corr sink-late with tokens -0.96 | with seg score 0.59
+
+== confound checks
+Skywork tokens AUC (shorter=robust) 0.685 | uncapped n=14 fragile=1 | capped n=34 fragile=15
+Skywork late sink mean: uncapped 0.194 capped 0.150 | capped range 0.120-0.161, uncapped 0.155-0.258
+Skywork capped only: late sink AUC 0.691 p=0.0624
+Skywork capped only: whole sink AUC 0.649 p=0.1475
+Skywork capped only: far 1-9 (fragile higher) AUC 0.582 p=0.4284
+Skywork capped: corr late sink ~ problem chars -0.79; problem chars AUC 0.351
+Skywork all: problem chars AUC 0.385, corr late sink -0.30
+Skywork-OR1-Math-7B n 34 fragile 15 late sink AUC 0.691
+Olmo-3-7B-Think n 9 fragile 2 late sink AUC 0.857
+DeepSeek-R1-0528-Qwen3-8B n 12 fragile 4 late sink AUC 0.625
+capped pooled, within-model z: n 55 AUC 0.671 p=0.0321
+capped pooled excl. Skywork: AUC 0.700 p=0.1812
+accuracy from single OOF score: {'d9': 0.686, 'd3': 0.727, 'd7': 0.726, 'early': 0.722, 'late': 0.733} E+L 0.737
+seg E+L AUC capped 0.677 | d9 capped 0.642
+is_capped alone within-model: AUC 0.620
+seg E+L by config, capped only: {'DeepSeek-R1-0528-Qwen3-8B': 0.28, 'Olmo-3-7B-Think': 0.79, 'Qwen3.5-4B': 0.97, 'Skywork-OR1-Math-7B': 0.74, 'gpt-oss-120b:high': 0.0, 'gpt-oss-120b:medium': 1.0}
+
+== sink residual after log problem chars, capped traces
+Skywork capped R2 on log problem chars 0.46 | residual AUC 0.537 p=0.7318
+pooled three models residual AUC 0.566 p=0.4247; problem chars alone within-model AUC 0.634
+seg E+L vs problem chars: within-model corr -0.25; trace tokens corr on Skywork -0.58
+step_mean vs problem chars within-model corr -0.17; norm_slope 0.19
+AUC problem chars within-model, all 118 (shorter=robust) 0.649

@@ -62,6 +62,9 @@ Stages, each resumable and written under ``data/cvbench/<stage>/<model>.*``:
 * ``introspect``: zero-shot self-prediction (Binder et al., 2024, "Looking Inward"): hypothetical questions
   about the model's own behaviour on the problem, answered with no chain of thought (the thinking block is
   closed), read as the Yes-vs-No log-odds of the next token -> ``introspect/<model>.jsonl``.
+* ``nothink``: classical semantic entropy with no chain of thought: ``--n`` samples (T=1) of the answer to
+  the original, thinking block closed; ``--nt-mode direct`` prefills ``\\boxed{`` (answer tokens only),
+  ``free`` lets the model answer in ``--nt-max-new`` tokens -> ``nothink/<model>__<mode>.jsonl``.
 * ``sample``: the forced-answer perturbation probe (X + 4 perturbations,
   ``--n`` traces each, ``--budget`` thinking tokens, forced answers and
   answer log-probs).
@@ -270,6 +273,66 @@ def run_introspect(model, tokenizer, model_id: str, todo: dict[str, str]) -> Non
             row[name + "_mass"] = float(np.exp(yes) + np.exp(no))  # how much of the next token is Yes/No at all
         append_jsonl(out, [row])
     print(f"[introspect] {model_id}: done", flush=True)
+
+
+NT_PREFILL = "The final answer is $\\boxed{"
+
+
+def nothink_prompt(tokenizer, problem: str, mode: str) -> str:
+    """No chain of thought: think block closed; ``direct`` also prefills the boxed answer."""
+    prompt = no_think_prefix(format_problem(tokenizer, problem + SOLVE_SUFFIX), tokenizer)
+    return prompt + NT_PREFILL if mode == "direct" else prompt
+
+
+@torch.no_grad()
+def run_nothink(model, tokenizer, model_id: str, todo: dict[str, str], n: int, mode: str, max_new: int,
+                chunk: int = 50) -> None:
+    """Classical semantic entropy without reasoning: ``n`` samples at T=1 of the answer to the original
+    problem with the thinking block closed. ``direct``: the answer is prefilled up to ``\\boxed{`` and
+    only the number is decoded (~10 tokens); ``free``: the model writes a short answer (``max_new``
+    tokens) and the last boxed / final integer is parsed. -> ``nothink/<model>__<mode>.jsonl``."""
+    sys.path.insert(0, str(ROOT / "datagen"))
+    from common import extract_answer, parse_boxed  # noqa: E402
+    out = DATA / "nothink" / f"{safe(model_id)}__{mode}.jsonl"
+    done = {r["group"] for r in read_jsonl(out)}
+    groups = [g for g in todo if g not in done]
+    print(f"[nothink:{mode}] {model_id}: {len(groups)} to do ({len(done)} done)", flush=True)
+    device = model.get_input_embeddings().weight.device
+    torch.manual_seed(0)
+    for k, g in enumerate(groups, 1):
+        start = time.time()
+        prompt = nothink_prompt(tokenizer, todo[g], mode)
+        enc = tokenizer(prompt, add_special_tokens=False, return_tensors="pt").to(device)
+        p = enc.input_ids.shape[1]
+        # first-token distribution of the answer (direct: the leading digit)
+        logits = model(**enc, logits_to_keep=1).logits[0, -1].float()
+        lp = torch.log_softmax(logits, -1)
+        tok_ent = float(-(lp.exp() * lp).sum())
+        texts, n_tok = [], []
+        for s in range(0, n, chunk):
+            m = min(chunk, n - s)
+            gen = model.generate(**enc, do_sample=True, temperature=1.0, top_p=1.0, top_k=0,
+                                 max_new_tokens=max_new, num_return_sequences=m,
+                                 pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id)[:, p:]
+            for row in gen.tolist():
+                ids = [t for t in row if t not in (tokenizer.pad_token_id, tokenizer.eos_token_id)]
+                n_tok.append(len(ids))
+                texts.append(tokenizer.decode(ids, skip_special_tokens=True))
+        if mode == "direct":
+            answers = [parse_boxed(t.split("}", 1)[0]) if "}" in t else parse_boxed(t) for t in texts]
+        else:
+            answers = [extract_answer(t) for t in texts]
+        given = [a for a in answers if a is not None]
+        top = np.unique(np.array([str(a) for a in given]), return_counts=True)[1].max() / n if given else 0.0
+        row = {"group": g, "model_id": model_id, "mode": mode, "n": n, "max_new": max_new,
+               "answers": answers, "n_tokens": n_tok, "first_tok_entropy": tok_ent,
+               "se": answer_entropy(answers), "top_share": float(top), "na_rate": 1 - len(given) / n,
+               "n_distinct": len(set(given)), "seconds": round(time.time() - start, 2),
+               "example": texts[0][:300]}
+        append_jsonl(out, [row])
+        print(f"  {k}/{len(groups)} {g}: se {row['se']:.2f} top {top:.2f} na {row['na_rate']:.2f} "
+              f"distinct {row['n_distinct']} ex {texts[0][:40]!r} {row['seconds']}s", flush=True)
+        torch.cuda.empty_cache()
 
 
 def answer_entropy(answers: list) -> float:
@@ -809,6 +872,31 @@ def run_effort(model, tokenizer, model_id: str, segments: int = 10) -> None:
     print(f"[effort] {model_id}: done", flush=True)
 
 
+@torch.no_grad()
+def run_pcprompt(model, tokenizer, model_id: str) -> None:
+    """Competence probe (pcorrect.py): prompt-only forward on every labelgen original; last-prompt state at
+    EFFORT_FRACS (+ every layer) -> effort/<model>/<pid>_original_0.npz, the file pcorrect.table() reads."""
+    out_dir = DATA / "effort" / safe(model_id)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    problems = {r["problem_id"]: r["problem"] for r in read_jsonl(ROOT / "data" / "labelgen" / "problems.jsonl")}
+    todo = [pid for pid in problems if not (out_dir / f"{pid}_original_0.npz").is_file()]
+    print(f"[pcprompt] {model_id}: {len(todo)} of {len(problems)} to do", flush=True)
+    device = model.get_input_embeddings().weight.device
+    for k, pid in enumerate(todo, 1):
+        ids = tokenizer(format_problem(tokenizer, problems[pid]), add_special_tokens=False, truncation=True,
+                        max_length=2048)["input_ids"]
+        hs = model(input_ids=torch.tensor([ids], device=device), output_hidden_states=True,
+                   logits_to_keep=1).hidden_states
+        allh = torch.stack([h[0, -1] for h in hs]).float().cpu().numpy().astype(np.float16)
+        layers = [int(round(f * (len(hs) - 1))) for f in EFFORT_FRACS]
+        np.savez(out_dir / f"{pid}_original_0.npz", last_prompt=allh[layers], last_prompt_all=allh,
+                 fracs=np.array(EFFORT_FRACS), problem_id=pid, type="original", variant=0, problem=problems[pid])
+        del hs
+        if k % 50 == 0:
+            print(f"  {k}/{len(todo)}", flush=True)
+    print(f"[pcprompt] {model_id}: done", flush=True)
+
+
 HEDGE = re.compile(r"\b(wait|hmm+|alternatively|actually|let me (?:double[- ]check|re-?check|verify|reconsider)|"
                    r"but (?:wait|hold on)|on second thought|i made (?:a|an) (?:mistake|error)|that'?s (?:not right|wrong))\b",
                    re.IGNORECASE)  # cvbench/cv.py HESITATION
@@ -882,7 +970,9 @@ def run_hedge(model, tokenizer, model_id: str, todo: dict[str, str], segments: i
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge", "effort", "liref", "difficulty"])
+    parser.add_argument("--stages", nargs="+", default=["greedy", "acts"], choices=["greedy", "acts", "sample", "pool", "segs", "sep", "sep2", "lens", "introspect", "tsegs", "lookback", "noise", "hedge", "effort", "liref", "difficulty", "pcprompt", "nothink"])
+    parser.add_argument("--nt-mode", default="direct", choices=["direct", "free"])
+    parser.add_argument("--nt-max-new", type=int, default=16)
     parser.add_argument("--models", nargs="+", default=None, help="Default: every model in the case file.")
     parser.add_argument("--cases", default="cases.jsonl", help="Case file under data/cvbench.")
     parser.add_argument("--batch-size", type=int, default=16)
@@ -928,6 +1018,8 @@ def main() -> None:
                         run_noise(model, tokenizer, model_id, todo)
                     elif stage == "liref":
                         run_liref(model, tokenizer, model_id)
+                    elif stage == "pcprompt":
+                        run_pcprompt(model, tokenizer, model_id)
                     elif stage == "difficulty":
                         run_difficulty(model, tokenizer, model_id)
                     elif stage == "effort":
@@ -936,6 +1028,8 @@ def main() -> None:
                         run_hedge(model, tokenizer, model_id, todo, args.segments)
                     elif stage == "lookback":
                         run_lookback(model, tokenizer, model_id, todo, args.segments)
+                    elif stage == "nothink":
+                        run_nothink(model, tokenizer, model_id, todo, args.n, args.nt_mode, args.nt_max_new)
                     elif stage == "tsegs":
                         run_tsegs(model, tokenizer, model_id, todo, args.segments, sorted(args.tsegs_budgets))
                     else:

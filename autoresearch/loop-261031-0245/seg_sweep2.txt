@@ -1,2 +1,0 @@
-[--blocks seg traj tx --frac 0.3] seg+traj+tx                  acc=0.7975±0.0110 auc=0.7942 bacc=0.7024 | Qwen3.5-4B=0.875; Skywork-OR1-Math-7B=0.798; Olmo-3-7B-Think=0.911; DeepSeek-R1-0528-Qwen3-8B=0.583; gpt-oss-120b:high=0.733; gpt-oss-120b:low=0.700; gpt-oss-120b:medium=0.947
-[--blocks seg traj tx --frac 0.4] 

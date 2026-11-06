@@ -1,4 +1,0 @@
-[--blocks seg_pool] seg_pool                     acc=0.7504±0.0179 auc=0.7327 bacc=0.6235 | Qwen3.5-4B=0.754; Skywork-OR1-Math-7B=0.767; Olmo-3-7B-Think=0.778; DeepSeek-R1-0528-Qwen3-8B=0.604; gpt-oss-120b:high=0.737; gpt-oss-120b:low=0.757; gpt-oss-120b:medium=0.807
-[--blocks seg_pool traj] seg_pool+traj                acc=0.7708±0.0130 auc=0.7517 bacc=0.6594 | Qwen3.5-4B=0.800; Skywork-OR1-Math-7B=0.778; Olmo-3-7B-Think=0.789; DeepSeek-R1-0528-Qwen3-8B=0.613; gpt-oss-120b:high=0.710; gpt-oss-120b:low=0.786; gpt-oss-120b:medium=0.893
-[--blocks seg_pool traj tx] seg_pool+traj+tx             acc=0.7975±0.0182 auc=0.8151 bacc=0.7086 | Qwen3.5-4B=0.850; Skywork-OR1-Math-7B=0.800; Olmo-3-7B-Think=0.906; DeepSeek-R1-0528-Qwen3-8B=0.613; gpt-oss-120b:high=0.703; gpt-oss-120b:low=0.707; gpt-oss-120b:medium=0.967
-done

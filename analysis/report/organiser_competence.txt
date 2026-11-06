@@ -1,0 +1,44 @@
+Organiser only: n=80, problems=33, robust=59, fragile=21
+Rate = correct completed solutions / 8 at 16k; unfinished solutions count as failures.
+All 80 cases have reference answers; provenance saved per case.
+Raw solve-rate AUC 0.683; within-model pair AUC 0.753
+Qwen/Qwen3.5-4B: n=12 fragile=4 mean solve robust=0.234 fragile=0.000 AUC=0.750
+Skywork/Skywork-OR1-Math-7B: n=12 fragile=3 mean solve robust=0.931 fragile=0.875 AUC=0.648
+allenai/Olmo-3-7B-Think: n=9 fragile=2 mean solve robust=0.982 fragile=0.750 AUC=0.714
+deepseek-ai/DeepSeek-R1-0528-Qwen3-8B: n=10 fragile=3 mean solve robust=0.036 fragile=0.000 AUC=0.643
+openai/gpt-oss-120b:high: n=15 fragile=2 mean solve robust=0.837 fragile=0.438 AUC=0.865
+openai/gpt-oss-120b:low: n=7 fragile=2 mean solve robust=0.950 fragile=1.000 AUC=0.300
+openai/gpt-oss-120b:medium: n=15 fragile=5 mean solve robust=1.000 fragile=0.750 AUC=0.900
+Descriptive one-sided within-model label permutation p=0.0002 (does not preserve cross-model problem dependence)
+Subgroup 8/8: n=39 fragile=5
+  existing OOF stack: AUC=0.882, fragile flagged=2/5
+  existing OOF tx: AUC=0.941, fragile flagged=1/5
+  existing OOF white_box: AUC=0.700, fragile flagged=1/5
+  existing OOF seg: AUC=0.618, fragile flagged=1/5
+Subgroup <8/8: n=41 fragile=16
+  existing OOF stack: AUC=0.823, fragile flagged=10/16
+  existing OOF tx: AUC=0.825, fragile flagged=9/16
+  existing OOF white_box: AUC=0.775, fragile flagged=7/16
+  existing OOF seg: AUC=0.720, fragile flagged=4/16
+Subgroup >=7/8: n=50 fragile=8
+  existing OOF stack: AUC=0.878, fragile flagged=4/8
+  existing OOF tx: AUC=0.887, fragile flagged=2/8
+  existing OOF white_box: AUC=0.771, fragile flagged=3/8
+  existing OOF seg: AUC=0.679, fragile flagged=2/8
+Fragility vs 8/8 table [[5, 34], [16, 25]]; descriptive Fisher p=0.0107
+
+Fresh organiser-only training; 20 x 5-fold grouped CV, C=.1, model intercept indicators in every model.
+model                        acc=0.738 AUC=0.285 logloss=0.618
+competence                   acc=0.754 AUC=0.605 logloss=0.549
+seg                          acc=0.758 AUC=0.570 logloss=0.574
+competence+seg               acc=0.772 AUC=0.640 logloss=0.535
+competence_quadratic         acc=0.753 AUC=0.622 logloss=0.546
+competence_quadratic+seg     acc=0.772 AUC=0.649 logloss=0.531
+competence_completion        acc=0.756 AUC=0.615 logloss=0.550
+competence_completion+seg    acc=0.774 AUC=0.651 logloss=0.530
+competence+seg minus competence: accuracy +0.018 95% group-bootstrap [-0.007  0.051]; mean-score AUC +0.018 CI [-0.149  0.167]
+competence_quadratic+seg minus competence_quadratic: accuracy +0.019 95% group-bootstrap [-0.015  0.058]; mean-score AUC +0.028 CI [-0.122  0.157]
+competence_completion+seg minus competence_completion: accuracy +0.019 95% group-bootstrap [-0.016  0.065]; mean-score AUC +0.009 CI [-0.148  0.136]
+Within-model solve-rate AUC 95% problem-bootstrap CI: [0.625 0.882]
+Within-model rank correlation, solve rate vs fresh OOF SegProbe: 0.210
+Caveats: eight draws estimate budget-limited solve rate, not latent competence; cached samples also feed TransBlackBox; references are locally curated rather than organiser-provided; exploratory analysis; subgroup Fisher/permutation tests ignore shared-problem dependence; bootstrap groups problems; added-feature tests are predictive, not causal mediation.

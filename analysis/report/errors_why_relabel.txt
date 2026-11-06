@@ -1,0 +1,87 @@
+
+== current label vs finished_only
+finished_only  fragile  robust
+label                         
+fragile              1      13
+robust               0      24
+
+== current label vs pooled
+pooled   absent  fragile  robust  unlabelled
+label                                       
+fragile       4        3       4           3
+robust        1        0      21           2
+
+== current label vs forced
+forced   absent  fragile  robust  unlabelled
+label                                       
+fragile       1        1      11           1
+robust        1        0      23           0
+
+== by stack outcome, generated cases
+finished_only  fragile  robust
+out                           
+FN                   0       7
+FP                   0       2
+TN                   0      22
+TP                   1       6
+                                       out  drop  finished_drop finished_only      pooled  forced_drop      forced  orig_tok  orig_at_cap
+case                                                                                                                                     
+Skywork-OR1-Math-7B:d03cff1d2f5f        FN  0.50            0.0        robust     fragile          0.0      robust      5704         0.00
+Skywork-OR1-Math-7B:2347acb5eb3b        FN  0.50            0.0        robust  unlabelled          0.0      robust      6162         0.00
+Skywork-OR1-Math-7B:84c96fbdf01d        FN  0.50            0.0        robust      robust          0.0      robust      4156         0.00
+Skywork-OR1-Math-7B:43a47a368257        FN  0.50            0.0        robust      robust          0.0      robust      5906         0.00
+Skywork-OR1-Math-7B:f8582ebf459f        FN  0.50            0.0        robust  unlabelled         -0.1      robust      4857         0.00
+Skywork-OR1-Math-7B:357603fe2192        FN  0.75            0.0        robust     fragile          0.0      robust      6593         0.25
+Skywork-OR1-Math-7B:0ad93fe26435        FN  0.75            0.0        robust      robust         -0.5      robust      6629         0.25
+Skywork-OR1-Math-7B:ceaf79b0d8f5        TP  0.25            0.0        robust  unlabelled          0.0      robust      5092         0.25
+Skywork-OR1-Math-7B:4884c0258b65        TP  0.25            0.0        robust     fragile          0.3     fragile      6916         0.25
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd  TP  0.25            0.0        robust      absent          NaN      absent      6411         0.25
+Skywork-OR1-Math-7B:b4dc7e5ecb38        TP  0.50            0.0        robust      absent          0.1      robust      8003         0.50
+Skywork-OR1-Math-7B:556fcb223763        TP  0.50            0.0        robust      absent         -0.3      robust      8164         0.50
+Skywork-OR1-Math-7B:af2372bd19e1        TP  0.75            1.0       fragile      absent         -0.1      robust      7010         0.25
+Skywork-OR1-Math-7B:02103658ef10        TP  0.75            0.0        robust      robust          0.2  unlabelled      7026         0.25
+
+robust cases changing under finished-only or pooled:
+Empty DataFrame
+Columns: [out, label, drop, finished_drop, finished_only, pooled, forced_drop, forced, orig_tok, orig_at_cap]
+Index: []
+
+original median tokens AUC for fragile, generated, 0.777; share of originals at cap AUC 0.723
+         orig_tok  orig_at_cap
+label                         
+fragile    6502.0         0.25
+robust     4202.5         0.00
+
+stack calls against finished-only labels (no retraining): n=38, correct 30, fragile 1, called fragile 9; against current labels correct 29
+
+== fixed-option stack vs CV stack: same outcome on 116 of 118 | corr p 0.993
+mean logit contribution by outcome (positive pushes robust)
+      seg  traj    tx  attn  intercept
+out                                   
+TP  -0.69 -0.36 -0.86 -0.05       1.25
+FN   0.04  0.02 -0.31  0.03       1.27
+FP  -0.76 -0.30 -0.96  0.00       1.26
+TN   0.28  0.10  0.31  0.00       1.26
+                                       out             model                   mode   seg  traj    tx  attn  intercept     p
+case_id                                                                                                                     
+Skywork-OR1-Math-7B:2347acb5eb3b        FN  Skywork-OR1-Math     finished within 4k  1.09  0.58  0.31  0.00       1.33  0.96
+gpt-oss-120b:low:f7b4a98af9dd           FN       gpt-oss:low     finished within 4k  0.00  0.15 -0.62  0.00       1.22  0.68
+gpt-oss-120b:low:7443669f7e90           FN       gpt-oss:low     finished within 4k  0.00 -0.56 -0.33  0.00       1.18  0.57
+Qwen3.5-4B:f02e2f662264                 FN        Qwen3.5-4B  never finished at 16k -0.88  0.19 -0.76  0.00       1.28  0.46
+Qwen3.5-4B:7ee9d4437899                 FN        Qwen3.5-4B  never finished at 16k -0.08  0.04 -0.54  0.00       1.31  0.67
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  FN  DeepSeek-R1-0528  never finished at 16k  0.00  0.52 -0.90  0.46       1.26  0.79
+gpt-oss-120b:high:a09aac07cb64          FN      gpt-oss:high  never finished at 16k  1.28  0.44 -0.79  0.00       1.27  0.89
+Skywork-OR1-Math-7B:7ee9d4437899        FN  Skywork-OR1-Math      solved every time  0.17  0.27 -0.11  0.00       1.31  0.83
+Skywork-OR1-Math-7B:d03cff1d2f5f        FN  Skywork-OR1-Math      solved every time  0.47 -0.32 -0.09  0.00       1.25  0.78
+Skywork-OR1-Math-7B:84c96fbdf01d        FN  Skywork-OR1-Math      solved every time  0.23  0.01  0.18  0.00       1.31  0.85
+Skywork-OR1-Math-7B:43a47a368257        FN  Skywork-OR1-Math      solved every time -1.05 -0.22  0.02  0.00       1.27  0.51
+Skywork-OR1-Math-7B:f8582ebf459f        FN  Skywork-OR1-Math      solved every time -1.25 -0.37  0.17  0.00       1.27  0.46
+Skywork-OR1-Math-7B:357603fe2192        FN  Skywork-OR1-Math       solved sometimes -0.39 -0.21 -0.32  0.00       1.24  0.58
+Skywork-OR1-Math-7B:0ad93fe26435        FN  Skywork-OR1-Math       solved sometimes  0.83 -0.24 -0.31  0.00       1.28  0.82
+gpt-oss-120b:high:757506c4e1d1          FN      gpt-oss:high       solved sometimes  0.25 -0.03 -0.51  0.00       1.26  0.72
+gpt-oss-120b:high:9dd85c12874d          FP      gpt-oss:high  never finished at 16k -0.12 -0.14 -1.60  0.00       1.25  0.36
+Skywork-OR1-Math-7B:c0aff28b8c4a        FP  Skywork-OR1-Math      solved every time -0.90 -0.36 -0.16  0.00       1.24  0.46
+Skywork-OR1-Math-7B:3f2e57075a10        FP  Skywork-OR1-Math       solved sometimes -1.81 -0.31 -0.69  0.00       1.27  0.18
+gpt-oss-120b:high:51697b0daa5c          FP      gpt-oss:high       solved sometimes -0.23 -0.40 -1.39  0.00       1.26  0.33
+
+FN largest push to robust: {'seg': 7, 'traj': 6, 'tx': 2} | FP largest push to fragile: {'seg': 2, 'tx': 2}

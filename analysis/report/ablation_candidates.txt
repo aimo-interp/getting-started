@@ -1,0 +1,74 @@
+config                             acc    auc
+attn FULL (tx)           0.8305±0.016 0.850
+attn -attn (tx)          0.8203±0.016 0.848
+attn -seg (tx)           0.8017±0.019 0.871
+attn -traj (tx)          0.7962±0.019 0.828
+attn -tx (tx)            0.7966±0.016 0.768
+tx only (tx)             0.7716±0.008 0.851
+attn FULL (tx4)          0.8042±0.016 0.821
+attn -attn (tx4)         0.7953±0.014 0.812
+attn -seg (tx4)          0.7953±0.013 0.832
+attn -traj (tx4)         0.7750±0.012 0.794
+attn -tx (tx4)           0.7966±0.016 0.768
+tx only (tx4)            0.7335±0.013 0.800
+ds5 FULL (tx)            0.8263±0.015 0.849
+ds5 -seg (tx)            0.7966±0.017 0.871
+ds5 -traj (tx)           0.8055±0.015 0.841
+ds5 -tx (tx)             0.7992±0.011 0.786
+ds5 FULL (tx4)           0.8051±0.010 0.824
+ds5 -seg (tx4)           0.7775±0.009 0.826
+ds5 -traj (tx4)          0.7886±0.017 0.807
+safe FULL (tx)           0.8191±0.016 0.837
+pca3 @.5 (tx)            0.8157±0.014 0.860
+wdim3 @.5 (tx)           0.8157±0.015 0.866
+
+Δacc, paired, 95% CI bootstrap over problems, P(Δ<=0)
+attn FULL (tx)       vs attn -attn (tx)      +0.0102 [+0.001,+0.023] p=0.010
+attn FULL (tx)       vs attn -seg (tx)       +0.0288 [+0.002,+0.059] p=0.020
+attn FULL (tx)       vs attn -traj (tx)      +0.0343 [+0.008,+0.066] p=0.004
+attn FULL (tx)       vs attn -tx (tx)        +0.0339 [-0.010,+0.082] p=0.065
+attn FULL (tx)       vs tx only (tx)         +0.0589 [+0.011,+0.114] p=0.009
+attn -attn (tx)      vs tx only (tx)         +0.0487 [+0.000,+0.103] p=0.024
+ds5 FULL (tx)        vs ds5 -seg (tx)        +0.0297 [-0.010,+0.074] p=0.077
+ds5 FULL (tx)        vs ds5 -traj (tx)       +0.0208 [-0.002,+0.048] p=0.037
+ds5 FULL (tx)        vs tx only (tx)         +0.0547 [+0.002,+0.112] p=0.020
+attn FULL (tx4)      vs attn -attn (tx4)     +0.0089 [-0.005,+0.026] p=0.118
+attn FULL (tx4)      vs attn -seg (tx4)      +0.0089 [-0.024,+0.046] p=0.321
+attn FULL (tx4)      vs attn -traj (tx4)     +0.0292 [+0.000,+0.063] p=0.024
+attn FULL (tx4)      vs attn -tx (tx4)       +0.0076 [-0.018,+0.035] p=0.272
+attn FULL (tx4)      vs tx only (tx4)        +0.0708 [+0.024,+0.133] p=0.001
+attn -attn (tx4)     vs tx only (tx4)        +0.0619 [+0.017,+0.120] p=0.003
+ds5 FULL (tx4)       vs ds5 -seg (tx4)       +0.0275 [-0.017,+0.075] p=0.118
+ds5 FULL (tx4)       vs ds5 -traj (tx4)      +0.0165 [-0.000,+0.036] p=0.028
+ds5 FULL (tx4)       vs tx only (tx4)        +0.0716 [+0.024,+0.133] p=0.001
+attn FULL (tx)       vs ds5 FULL (tx)        +0.0042 [-0.014,+0.027] p=0.358
+ds5 FULL (tx)        vs ds5 -tx (tx)         +0.0271 [-0.012,+0.070] p=0.081
+attn FULL (tx)       vs pca3 @.5 (tx)        +0.0148 [-0.004,+0.039] p=0.075
+
+per-model accuracy
+                         DeepSeek-R1 Olmo-3-7B-T  Qwen3.5-4B Skywork-OR1 gpt-oss-120 gpt-oss-120 gpt-oss-120
+n / fragile                  12/4         9/2        12/4        48/16       15/2         7/2        15/5   
+attn FULL (tx)                 0.833       0.961       0.871       0.801       0.723       0.693       0.983
+attn -attn (tx)                0.767       0.922       0.883       0.796       0.723       0.693       0.987
+attn -seg (tx)                 0.867       0.906       0.817       0.776       0.690       0.700       0.917
+attn -traj (tx)                0.675       0.894       0.858       0.791       0.740       0.671       0.917
+attn -tx (tx)                  0.792       0.783       0.804       0.773       0.853       0.700       0.867
+tx only (tx)                   0.754       1.000       0.729       0.734       0.800       0.571       0.867
+attn FULL (tx4)                0.767       0.717       0.783       0.789       0.833       0.714       0.967
+attn -attn (tx4)               0.671       0.700       0.808       0.787       0.833       0.714       0.967
+attn -seg (tx4)                0.821       0.811       0.683       0.797       0.683       0.714       1.000
+attn -traj (tx4)               0.650       0.778       0.775       0.758       0.843       0.693       0.897
+attn -tx (tx4)                 0.792       0.783       0.804       0.773       0.853       0.700       0.867
+tx only (tx4)                  0.667       0.778       0.667       0.706       0.777       0.579       0.930
+ds5 FULL (tx)                  0.692       0.967       0.892       0.815       0.737       0.700       0.983
+ds5 -seg (tx)                  0.817       0.906       0.808       0.769       0.680       0.693       0.960
+ds5 -traj (tx)                 0.704       0.883       0.838       0.804       0.743       0.664       0.947
+ds5 -tx (tx)                   0.688       0.789       0.825       0.789       0.840       0.714       0.907
+ds5 FULL (tx4)                 0.692       0.783       0.800       0.797       0.837       0.714       0.950
+ds5 -seg (tx4)                 0.758       0.767       0.683       0.779       0.677       0.714       1.000
+ds5 -traj (tx4)                0.683       0.778       0.796       0.774       0.843       0.693       0.910
+safe FULL (tx)                 0.650       0.928       0.896       0.816       0.733       0.693       0.983
+pca3 @.5 (tx)                  0.679       0.994       0.858       0.797       0.727       0.693       0.990
+wdim3 @.5 (tx)                 0.692       0.994       0.879       0.787       0.727       0.700       0.990
+
+picks (attn FULL tx): {('DeepSeek-R1-0528-Qwen3-8B', 'seg_safe+traj+tx+attn'): 9, ('DeepSeek-R1-0528-Qwen3-8B', 'traj+tx'): 11, ('DeepSeek-R1-0528-Qwen3-8B', 'traj+tx+attn'): 80, ('Olmo-3-7B-Think', 'seg_safe+traj+tx+attn'): 74, ('Olmo-3-7B-Think', 'traj+tx+attn'): 22, ('Qwen3.5-4B', 'seg_safe+traj+tx'): 21, ('Qwen3.5-4B', 'seg_safe+traj+tx+attn'): 64, ('Qwen3.5-4B', 'traj+tx'): 7, ('Qwen3.5-4B', 'traj+tx+attn'): 8, ('Skywork-OR1-Math-7B', 'seg_safe+traj+tx'): 5, ('Skywork-OR1-Math-7B', 'seg_safe+traj+tx+attn'): 69, ('Skywork-OR1-Math-7B', 'traj+tx'): 8, ('Skywork-OR1-Math-7B', 'traj+tx+attn'): 18, ('gpt-oss-120b:high', 'seg_safe+traj+tx+attn'): 72, ('gpt-oss-120b:high', 'traj+tx'): 3, ('gpt-oss-120b:high', 'traj+tx+attn'): 25, ('gpt-oss-120b:low', 'seg_safe+traj+tx+attn'): 79, ('gpt-oss-120b:low', 'traj+tx+attn'): 6, ('gpt-oss-120b:medium', 'seg_safe+traj+tx+attn'): 88, ('gpt-oss-120b:medium', 'traj+tx'): 4, ('gpt-oss-120b:medium', 'traj+tx+attn'): 8}

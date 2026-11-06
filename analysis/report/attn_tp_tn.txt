@@ -1,0 +1,115 @@
+stack without attention: {'TN': 79, 'TP': 19, 'FN': 16, 'FP': 4} | same outcome as with attention on 115 of 118
+out               TP  FN  FP  TN
+model                           
+DeepSeek-R1-0528   2   2   0   8
+Olmo-3-7B-Think    2   0   0   7
+Qwen3.5-4B         3   1   0   8
+Skywork-OR1-Math   7   8   2  17
+
+== all four models, capped: TN 40, TP 14; AUC = TN higher; p raw two-sided, p family across 12 features
+  BOS + template d1-5      AUC 0.621  p 0.201  family p 0.746
+  BOS + template d6-9      AUC 0.689  p 0.044  family p 0.261
+  BOS + template all       AUC 0.684  p 0.055  family p 0.289
+  problem d1-5             AUC 0.348  p 0.104  family p 0.509
+  problem d6-9             AUC 0.466  p 0.725  family p 1.000
+  problem all              AUC 0.396  p 0.269  family p 0.861
+  far reasoning d1-5       AUC 0.464  p 0.715  family p 1.000
+  far reasoning d6-9       AUC 0.559  p 0.534  family p 0.993
+  far reasoning all        AUC 0.527  p 0.787  family p 1.000
+  last 64 d1-5             AUC 0.629  p 0.174  family p 0.688
+  last 64 d6-9             AUC 0.334  p 0.077  family p 0.407
+  last 64 all              AUC 0.502  p 0.991  family p 1.000
+
+== Skywork only, capped: TN 17, TP 7; AUC = TN higher; p raw two-sided, p family across 12 features
+  BOS + template d1-5      AUC 0.630  p 0.361  family p 0.931
+  BOS + template d6-9      AUC 0.723  p 0.094  family p 0.497
+  BOS + template all       AUC 0.647  p 0.291  family p 0.882
+  problem d1-5             AUC 0.261  p 0.076  family p 0.404
+  problem d6-9             AUC 0.462  p 0.806  family p 1.000
+  problem all              AUC 0.361  p 0.311  family p 0.904
+  far reasoning d1-5       AUC 0.395  p 0.453  family p 0.981
+  far reasoning d6-9       AUC 0.529  p 0.852  family p 1.000
+  far reasoning all        AUC 0.496  p 1.000  family p 1.000
+  last 64 d1-5             AUC 0.807  p 0.019  family p 0.144
+  last 64 d6-9             AUC 0.395  p 0.467  family p 0.981
+  last 64 all              AUC 0.622  p 0.396  family p 0.953
+
+== Olmo + DeepSeek + Qwen3.5, capped: TN 23, TP 7; AUC = TN higher; p raw two-sided, p family across 12 features
+  BOS + template d1-5      AUC 0.609  p 0.436  family p 0.973
+  BOS + template d6-9      AUC 0.671  p 0.194  family p 0.777
+  BOS + template all       AUC 0.671  p 0.204  family p 0.777
+  problem d1-5             AUC 0.385  p 0.406  family p 0.965
+  problem d6-9             AUC 0.472  p 0.857  family p 1.000
+  problem all              AUC 0.422  p 0.575  family p 0.997
+  far reasoning d1-5       AUC 0.491  p 0.960  family p 1.000
+  far reasoning d6-9       AUC 0.590  p 0.514  family p 0.991
+  far reasoning all        AUC 0.553  p 0.699  family p 1.000
+  last 64 d1-5             AUC 0.447  p 0.707  family p 1.000
+  last 64 d6-9             AUC 0.323  p 0.188  family p 0.746
+  last 64 all              AUC 0.422  p 0.572  family p 0.997
+
+== all four, capped, log problem length removed: TN 40, TP 14; AUC = TN higher; p raw two-sided, p family across 12 features
+  BOS + template d1-5      AUC 0.436  p 0.494  family p 0.991
+  BOS + template d6-9      AUC 0.554  p 0.561  family p 0.998
+  BOS + template all       AUC 0.504  p 0.976  family p 1.000
+  problem d1-5             AUC 0.629  p 0.169  family p 0.722
+  problem d6-9             AUC 0.627  p 0.188  family p 0.734
+  problem all              AUC 0.636  p 0.148  family p 0.670
+  far reasoning d1-5       AUC 0.441  p 0.540  family p 0.996
+  far reasoning d6-9       AUC 0.536  p 0.717  family p 1.000
+  far reasoning all        AUC 0.487  p 0.906  family p 1.000
+  last 64 d1-5             AUC 0.566  p 0.486  family p 0.989
+  last 64 d6-9             AUC 0.350  p 0.104  family p 0.548
+  last 64 all              AUC 0.486  p 0.888  family p 1.000
+
+== mean within-model z by outcome, including misses and false alarms
+     BOS + template d6-9  far reasoning all  problem all  last 64 all
+out                                                                  
+TP                 -0.55              -0.14         0.51         0.08
+FN                 -0.11               0.35        -0.40        -0.25
+FP                  0.48               0.52        -0.67        -0.29
+TN                  0.20              -0.07        -0.04         0.05
+                      BOS + template d6-9  far reasoning all  problem all  last 64 all
+model            out                                                                  
+DeepSeek-R1-0528 FN                 0.410              0.229        0.009        0.323
+                 TN                 0.416              0.232        0.015        0.319
+                 TP                 0.412              0.209        0.028        0.334
+Olmo-3-7B-Think  TN                 0.090              0.496        0.030        0.308
+                 TP                 0.084              0.492        0.025        0.318
+Qwen3.5-4B       FN                 0.028              0.580        0.020        0.366
+                 TN                 0.030              0.554        0.043        0.367
+                 TP                 0.029              0.582        0.045        0.341
+Skywork-OR1-Math FN                 0.150              0.328        0.124        0.353
+                 FP                 0.153              0.330        0.119        0.354
+                 TN                 0.151              0.322        0.125        0.358
+                 TP                 0.145              0.323        0.133        0.356
+
+== mean attention share by decile, capped; model mean removed, +- share points x 100
+BOS + template   TN +0.07 -0.08 -0.05 +0.01 +0.11 +0.04 -0.03 +0.17 +0.33 +0.30
+BOS + template   TP -0.92 -0.36 -0.07 -0.31 -0.47 -0.38 -0.25 -0.38 -0.39 -0.28
+problem          TN +0.07 +0.09 +0.06 +0.25 +0.07 +0.03 -0.21 -0.18 -0.18 -0.25
+problem          TP +2.36 +0.64 +0.63 +0.27 +0.37 +0.18 +0.43 +0.07 +0.13 +0.04
+
+problem chars median {'TN': 227.5, 'TP': 325.5} | by model
+model             out
+DeepSeek-R1-0528  TN     198.5
+                  TP     917.5
+Olmo-3-7B-Think   TN     189.0
+                  TP     302.0
+Qwen3.5-4B        TN     280.0
+                  TP     308.0
+Skywork-OR1-Math  TN     237.0
+                  TP     343.0
+within-model corr with log chars, capped: {'BOS + template all': -0.68, 'problem all': 0.82}
+within-model log chars AUC, TN higher 0.263
+raw whole-trace share by model:
+                      BOS + template all  problem all
+model            out                                 
+DeepSeek-R1-0528 TN                0.434        0.015
+                 TP                0.430        0.028
+Olmo-3-7B-Think  TN                0.166        0.030
+                 TP                0.165        0.025
+Qwen3.5-4B       TN                0.036        0.043
+                 TP                0.033        0.045
+Skywork-OR1-Math TN                0.195        0.125
+                 TP                0.189        0.133

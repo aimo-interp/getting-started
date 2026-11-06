@@ -1,0 +1,27 @@
+repeat 1/20repeat 2/20repeat 3/20repeat 4/20repeat 5/20repeat 6/20repeat 7/20repeat 8/20repeat 9/20repeat 10/20repeat 11/20repeat 12/20repeat 13/20repeat 14/20repeat 15/20repeat 16/20repeat 17/20repeat 18/20repeat 19/20repeat 20/20
+method                                       acc      Δacc paired    auc    Δauc  logloss     Δll
+seg_safe+traj+tx                   0.8191±0.016 +0.0000±0.0000 0.837 +0.000  0.4466 +0.0000
+segpc1+traj+tx                     0.7818±0.018 -0.0373±0.0192 0.843 +0.006  0.4435 -0.0031
+segpc3+traj+tx                     0.7911±0.013 -0.0280±0.0163 0.848 +0.012  0.4603 +0.0137
+segpc5+traj+tx                     0.7915±0.014 -0.0275±0.0209 0.855 +0.018  0.5346 +0.0880
+seg_safe+traj                      0.7932±0.013 -0.0258±0.0183 0.760 -0.076  0.5117 +0.0651
+segpc1+traj                        0.7538±0.024 -0.0653±0.0209 0.735 -0.101  0.5293 +0.0827
+segpc5+traj                        0.7381±0.016 -0.0809±0.0240 0.729 -0.108  0.6388 +0.1923
+
+per-model accuracy (mean over repeats); Δ vs base
+                                   DeepSeek-R1-  Olmo-3-7B-Th    Qwen3.5-4B  Skywork-OR1-  gpt-oss-120b  gpt-oss-120b  gpt-oss-120b
+seg_safe+traj+tx                   0.650(+0.00)  0.928(+0.00)  0.896(+0.00)  0.816(+0.00)  0.733(+0.00)  0.693(+0.00)  0.983(+0.00)
+segpc1+traj+tx                     0.667(+0.02)  0.911(-0.02)  0.871(-0.03)  0.741(-0.08)  0.733(+0.00)  0.714(+0.02)  0.937(-0.05)
+segpc3+traj+tx                     0.787(+0.14)  0.889(-0.04)  0.767(-0.13)  0.769(-0.05)  0.707(-0.03)  0.707(+0.01)  0.950(-0.03)
+segpc5+traj+tx                     0.829(+0.18)  0.906(-0.02)  0.775(-0.12)  0.769(-0.05)  0.697(-0.04)  0.629(-0.06)  0.950(-0.03)
+seg_safe+traj                      0.646(-0.00)  0.778(-0.15)  0.838(-0.06)  0.785(-0.03)  0.840(+0.11)  0.707(+0.01)  0.903(-0.08)
+segpc1+traj                        0.650(+0.00)  0.856(-0.07)  0.796(-0.10)  0.715(-0.10)  0.860(+0.13)  0.707(+0.01)  0.783(-0.20)
+segpc5+traj                        0.767(+0.12)  0.850(-0.08)  0.717(-0.18)  0.699(-0.12)  0.823(+0.09)  0.514(-0.18)  0.810(-0.17)
+
+prediction flips vs base (per repeat, mean): right->wrong / wrong->right / total cases | within gated-off subset
+segpc1+traj+tx                      6.20 /  1.80 / 118 | gated: 21.2 cases/rep, acc 0.746->0.772, AUC 0.856->0.833, flips 0.10/0.65
+segpc3+traj+tx                      6.85 /  3.55 / 118 | gated: 21.2 cases/rep, acc 0.746->0.781, AUC 0.856->0.854, flips 0.30/1.05
+segpc5+traj+tx                      7.65 /  4.40 / 118 | gated: 21.2 cases/rep, acc 0.746->0.779, AUC 0.856->0.852, flips 0.75/1.45
+seg_safe+traj                       6.00 /  2.95 / 118 | gated: 21.2 cases/rep, acc 0.746->0.800, AUC 0.856->0.731, flips 0.45/1.60
+segpc1+traj                        11.25 /  3.55 / 118 | gated: 21.2 cases/rep, acc 0.746->0.824, AUC 0.856->0.692, flips 0.30/1.95
+segpc5+traj                        15.65 /  6.10 / 118 | gated: 21.2 cases/rep, acc 0.746->0.805, AUC 0.856->0.754, flips 1.10/2.35

@@ -8,3 +8,10 @@ solutions/*.zip
 # slurm job logs (the folder itself is kept: sbatch does not create it)
 slurm_out/*
 !slurm_out/.gitkeep
+# not needed to reproduce the results
+.claude/
+autoresearch/
+output/
+figures/
+.DS_Store
+solutions/saplma/artifacts/head.json

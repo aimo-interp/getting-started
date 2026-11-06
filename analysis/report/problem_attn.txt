@@ -1,0 +1,11 @@
+problem mass mean robust 0.1234 fragile 0.1277 (all) | capped robust 0.1240 fragile 0.1282
+by decile robust [0.183 0.113 0.105 0.104 0.106 0.109 0.116 0.127 0.134 0.138]
+by decile fragile [0.187 0.116 0.109 0.104 0.108 0.113 0.122 0.131 0.141 0.146]
+all, whole: AUC for robust 0.422  fragile-higher AUC 0.578  p=0.393
+all, early 1-5: AUC for robust 0.479  fragile-higher AUC 0.521  p=0.820
+all, late 6-9: AUC for robust 0.352  fragile-higher AUC 0.648  p=0.098
+capped, whole: AUC for robust 0.414  fragile-higher AUC 0.586  p=0.405
+capped, late: AUC for robust 0.449  fragile-higher AUC 0.551  p=0.616
+corr problem mass ~ log problem chars: all 0.72 capped 0.76
+capped, problem length removed: AUC for robust 0.540 p=0.710
+per-char mass capped robust 5.638e-04 fragile 4.517e-04

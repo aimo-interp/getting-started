@@ -1,0 +1,39 @@
+case,out,model,mode,drop,types,orig_right,orig_n,orig_med_tok,cap,right,wrong,unfinished,numchg,var_n,fail_rate
+Skywork-OR1-Math-7B:d03cff1d2f5f,FN,Skywork-OR1-Math,solved every time,0.5,6,4,4,5704,8192,10,0,2,1,12,0.16666666666666663
+Skywork-OR1-Math-7B:16d57ecb1281,TN,Skywork-OR1-Math,solved every time,0.0,6,4,4,5022,5572,12,0,0,0,12,0.0
+Skywork-OR1-Math-7B:f785f38899d1,TN,Skywork-OR1-Math,solved every time,0.0,5,4,4,4163,5412,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:2347acb5eb3b,FN,Skywork-OR1-Math,finished within 4k,0.5,6,4,4,6162,8192,9,0,3,0,12,0.25
+Skywork-OR1-Math-7B:5716b1b1c459,TN,Skywork-OR1-Math,finished within 4k,0.0,4,4,4,3366,4101,8,0,0,0,8,0.0
+Skywork-OR1-Math-7B:b4dc7e5ecb38,TP,Skywork-OR1-Math,solved sometimes,0.5,5,2,4,8003,8192,1,0,9,3,10,0.9
+Skywork-OR1-Math-7B:84c96fbdf01d,FN,Skywork-OR1-Math,solved every time,0.5,6,4,4,4156,8192,11,0,1,1,12,0.08333333333333337
+Skywork-OR1-Math-7B:af2372bd19e1,TP,Skywork-OR1-Math,solved sometimes,0.75,6,3,4,7010,8192,2,3,7,3,12,0.8333333333333334
+Skywork-OR1-Math-7B:5a51def1060d,TN,Skywork-OR1-Math,solved every time,0.0,6,4,4,4242,6576,12,0,0,0,12,0.0
+Skywork-OR1-Math-7B:43a47a368257,FN,Skywork-OR1-Math,solved every time,0.5,6,4,4,5906,8192,10,0,2,2,12,0.16666666666666663
+Skywork-OR1-Math-7B:485a3b9ebe60,TN,Skywork-OR1-Math,finished within 4k,0.0,5,4,4,2824,5514,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:f4147d8fc9f5,TN,Skywork-OR1-Math,solved every time,0.0,6,4,4,7750,8183,12,0,0,0,12,0.0
+Skywork-OR1-Math-7B:c0aff28b8c4a,FP,Skywork-OR1-Math,solved every time,0.0,5,4,4,5241,7072,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:556fcb223763,TP,Skywork-OR1-Math,solved sometimes,0.5,5,2,4,8164,8192,3,0,7,1,10,0.7
+Skywork-OR1-Math-7B:ceaf79b0d8f5,TP,Skywork-OR1-Math,solved sometimes,0.25,6,3,4,5092,8192,11,0,1,0,12,0.08333333333333337
+Skywork-OR1-Math-7B:357603fe2192,FN,Skywork-OR1-Math,solved sometimes,0.75,6,3,4,6593,8192,6,0,6,0,12,0.5
+Skywork-OR1-Math-7B:02103658ef10,TP,Skywork-OR1-Math,solved sometimes,0.75,6,3,4,7026,8192,10,0,2,0,12,0.16666666666666663
+Skywork-OR1-Math-7B:34f4eefeef25,TN,Skywork-OR1-Math,finished within 4k,0.0,5,4,4,2276,4264,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:7d2b9ecfeeda,TN,Skywork-OR1-Math,solved every time,0.0,6,4,4,7215,7805,12,0,0,0,12,0.0
+Skywork-OR1-Math-7B:f8582ebf459f,FN,Skywork-OR1-Math,solved every time,0.5,6,4,4,4857,8192,10,0,2,2,12,0.16666666666666663
+Skywork-OR1-Math-7B:4fc6e0b5ffc3,TN,Skywork-OR1-Math,finished within 4k,0.0,5,4,4,3104,5626,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:0ad93fe26435,FN,Skywork-OR1-Math,solved sometimes,0.75,6,3,4,6629,8192,7,0,5,1,12,0.41666666666666663
+Skywork-OR1-Math-7B:aa5f3524dc4a,TN,Skywork-OR1-Math,finished within 4k,0.0,5,4,4,2059,4091,10,0,0,0,10,0.0
+Skywork-OR1-Math-7B:3f2e57075a10,FP,Skywork-OR1-Math,solved sometimes,0.0,1,2,4,7921,8192,1,0,1,0,2,0.5
+Skywork-OR1-Math-7B:7b9d893478d9,TN,Skywork-OR1-Math,solved every time,0.0,1,4,4,5970,6353,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:4466d8887764,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,3545,5464,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:c44d27282e47,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,5395,6317,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:2bd4fe90c2c8,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,2648,3294,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:80b3f9e870bd,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,3660,4555,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:40de3e36fcb8,TN,Skywork-OR1-Math,solved every time,0.0,1,4,4,3261,5642,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:43afc8d2eb63,TN,Skywork-OR1-Math,solved sometimes,-0.25,1,3,4,4395,8192,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:4884c0258b65,TP,Skywork-OR1-Math,solved sometimes,0.25,1,3,4,6916,8192,1,0,1,0,2,0.5
+Skywork-OR1-Math-7B:a5f56d0bbefd,TN,Skywork-OR1-Math,solved sometimes,-0.25,1,3,4,6894,8192,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:6537c2de2d1e,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,1628,2173,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:cdcb5c950901,TN,Skywork-OR1-Math,solved every time,0.0,1,4,4,4893,5672,2,0,0,0,2,0.0
+Skywork-OR1-Math-7B:a8d0a59f01b5,TN,Skywork-OR1-Math,finished within 4k,0.0,1,4,4,3487,5573,2,0,0,0,2,0.0
+DeepSeek-R1-0528-Qwen3-8B:16d57ecb1281,TN,DeepSeek-R1-0528,solved sometimes,0.0,1,2,4,7484,8192,1,0,1,0,2,0.5
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd,TP,DeepSeek-R1-0528,solved sometimes,0.25,1,3,4,6411,8192,1,0,1,0,2,0.5

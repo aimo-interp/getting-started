@@ -1,0 +1,11 @@
+share sums 1.0 1.0
+all n 48 robust 32 fragile 16
+  'BOS + template'                     R 0.220 F 0.203 F-R -0.016 AUC robust-higher 0.744 p=0.006
+  'Problem text'                       R 0.122 F 0.126 F-R +0.004 AUC robust-higher 0.438 p=0.494
+  'Own reasoning,\n>64 tokens back'    R 0.301 F 0.316 F-R +0.015 AUC robust-higher 0.297 p=0.022
+  'Own reasoning,\nlast 64 tokens'     R 0.357 F 0.355 F-R -0.002 AUC robust-higher 0.557 p=0.537
+capped n 34 robust 19 fragile 15
+  'BOS + template'                     R 0.206 F 0.202 F-R -0.004 AUC robust-higher 0.649 p=0.141
+  'Problem text'                       R 0.122 F 0.126 F-R +0.004 AUC robust-higher 0.404 p=0.344
+  'Own reasoning,\n>64 tokens back'    R 0.313 F 0.317 F-R +0.003 AUC robust-higher 0.418 p=0.426
+  'Own reasoning,\nlast 64 tokens'     R 0.358 F 0.355 F-R -0.004 AUC robust-higher 0.621 p=0.249

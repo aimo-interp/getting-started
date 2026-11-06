@@ -1,0 +1,11 @@
+date,submission_id,zip,lb_main,lb_correct_of_21,lb_small,cv_score,cv_auc,cv_n_cases,notes
+2026-10-27,1012486,solution-seg-probe.zip,0.71,15,0.00,0.7758,0.6955,118,diff-in-means seg_probe 0-5/5-9 @ frac .5; greedy 4k trace
+2026-10-29,1016474,solution-transcript-probe.zip,0.71,15,0.00,0.7911,0.8547,119,"8 samples T=1; LB ran at 4096 on 10 cases (Olmo, DeepSeek, gpt-oss med/high), 8192 on 4 (Qwen, Skywork), 16384 only where all 8 finished (7: gpt-oss low + 1 Skywork); CV @4096=.741 @8192=.756; cap stuck at 188s per case (module re-imported per case), 723s unused"
+2026-10-29,1016470,solution-seg-traj.zip,0.62,13,0.00,0.7831,0.7123,118,seg_probe 0-5/5-9 + traj step_mean/norm_slope; trace-heads engine
+2026-10-29,1016483,solution-act-probe.zip,0.57,12,0.00,0.7496,0.6970,118,diff-in-means resp_mean @ frac .5; trace-heads engine
+2026-10-29,1016478,solution-saplma.zip,0.52,11,0.00,0.714,0.704,118,SAPLMA MLP on resp_mean @ frac .5; trace-heads engine
+2026-11-02,?,solution-stack-traj-tx.zip,0.62,13,,0.7966,0.871,118,traj+tx only (no seg); same stack-probe engine
+2026-11-02,1027035,solution-stack-ds5.zip,0.00,,0.00,0.8263,0.8497,118,ds5: DeepSeek seg after top-5 PC removal; scored 0.00 (failed run?) - logs pending
+2026-11-02,1027302,solution-stack-ds5.zip,0.71,15,,0.8263,0.8497,118,resubmit after organiser GPU incident (pre clock-fix engine); small track Failed
+2026-11-02,1027309,solution-stack-attn.zip,0.67,14,0.00,0.8305,,118,resubmit (pre clock-fix engine); earlier run 1027141 = 0.57
+2026-11-02,1027306,solution-stack-soft.zip,0.57,12,0.00,0.8127,0.868,118,resubmit; first run 1027149 = 0.43 (GPU killed by organisers, refunded)

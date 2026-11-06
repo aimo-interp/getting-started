@@ -16,7 +16,9 @@ logistic regression (C=0.3) shared across models:
 
 ``length`` (log mean tokens) is reported as the reference. Results go to
 ``research/results.csv``; ``--export`` fits on all cases and writes
-``artifacts/model.json`` with one fit per budget.
+``artifacts/model.json`` with one fit per budget. ``--oss`` adds the gpt-oss-120b
+cases (sampled by ``research/sample_oss.py``), z-scored per effort; the artifact
+then carries stats under "openai/gpt-oss-120b:<effort>".
 
     .venv/bin/python solutions/transcript-probe/research/train.py --export
 """
@@ -42,10 +44,11 @@ sys.path.insert(0, str(HERE.parent))
 
 from transcript_probe.features import FEATURES, transcript_features  # noqa: E402
 
-WORK = ROOT / "data" / "anchors" / "work"
+WORK = ROOT / "data" / "anchors" 
 SCREENS = {"Qwen/Qwen3.5-4B": WORK, "Skywork/Skywork-OR1-Math-7B": WORK / "Skywork_Skywork-OR1-Math-7B",
            "allenai/Olmo-3-7B-Think": WORK / "allenai_Olmo-3-7B-Think",
            "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": WORK / "deepseek-ai_DeepSeek-R1-0528-Qwen3-8B"}
+OSS = ROOT / "data" / "transcript_probe" / "oss"  # research/sample_oss.py: screen_<effort>.jsonl
 BUDGETS = (2048, 4096, 8192, 12288, 16384)
 C = 0.3
 
@@ -59,11 +62,16 @@ def clean(text: str) -> str:
     return text.replace("Ġ", " ").replace("Ċ", "\n") if "Ġ" in text else text
 
 
-def load_cases() -> list[dict]:
+def load_cases(oss: bool = False) -> list[dict]:
+    """Small-model cases; with ``oss`` also gpt-oss-120b, one pseudo-model per effort ("...:high")."""
     cases = read_jsonl(ROOT / "data" / "cvbench" / "cases.jsonl")
+    screens = {model_id: directory / "screen.jsonl" for model_id, directory in SCREENS.items()}
+    if oss:
+        cases += read_jsonl(ROOT / "data" / "cvbench" / "cases_oss.jsonl")
+        screens.update({f"openai/gpt-oss-120b:{e}": OSS / f"screen_{e}.jsonl" for e in ("low", "medium", "high")})
     originals = {}
-    for model_id, directory in SCREENS.items():
-        for row in read_jsonl(directory / "screen.jsonl"):
+    for model_id, path in screens.items():
+        for row in read_jsonl(path):
             if row["variant"] == "X":
                 originals[(model_id, row["group"])] = row
     for case in cases:
@@ -134,9 +142,11 @@ def main() -> None:
     parser.add_argument("--budgets", type=int, nargs="+", default=list(BUDGETS))
     parser.add_argument("--repeats", type=int, default=20)
     parser.add_argument("--export", action="store_true", help="Write artifacts/model.json.")
+    parser.add_argument("--oss", action="store_true",
+                        help="Add the 37 gpt-oss-120b cases (research/sample_oss.py); results to results_oss.csv.")
     args = parser.parse_args()
 
-    cases = load_cases()
+    cases = load_cases(args.oss)
     y = np.array([bool(c["is_robust"]) for c in cases])
     models = np.array([c["model_id"] for c in cases])
     groups = np.array([c["group"] for c in cases])
@@ -163,11 +173,12 @@ def main() -> None:
                 fits[str(budget)] = {"coef": clf.coef_[0].tolist(), "intercept": float(clf.intercept_[0]),
                                      "stats": stats}
 
-    with (HERE / "results.csv").open("w", newline="") as stream:
+    results_path = HERE / ("results_oss.csv" if args.oss else "results.csv")
+    with results_path.open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(results[0]))
         writer.writeheader()
         writer.writerows(results)
-    print(f"wrote {HERE / 'results.csv'}")
+    print(f"wrote {results_path}")
     if args.export:
         out = HERE.parent / "artifacts" / "model.json"
         out.parent.mkdir(exist_ok=True)

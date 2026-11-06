@@ -1,0 +1,119 @@
+Skywork n=48 robust=32 fragile=16; components=407
+
+===== window w05: decomposition check, rel err vs stored segs median 0.0011 max 0.0039
+total gap (full-data dir) 11.522; OOF AUC of full sum 0.668
+per layer share of gap  attn: +0.04 +0.01 +0.01 +0.03 +0.03 +0.02 +0.06 +0.04 +0.07 +0.10 +0.12 +0.10 +0.09 +0.22
+                         mlp: +0.01 +0.01 +0.01 +0.01 +0.02 -0.01 +0.00 +0.01 +0.01 -0.03 -0.01 -0.01 +0.00 +0.04
+                         emb: +0.00
+OOF AUC of residual up to layer l: 0.62 0.61 0.60 0.61 0.62 0.60 0.62 0.62 0.64 0.64 0.64 0.65 0.65 0.67
+attention total +0.94, MLP total +0.06
+concentration: top 5 comps 0.11, top 20 0.30, top 50 0.52 of |gap|
+component  gap share  OOF AUC
+L13.H16       +0.038    0.661
+L13.MLP       +0.038    0.562
+L13.H18       -0.035    0.318
+L10.H19       +0.032    0.705
+L13.H17       +0.029    0.656
+L9.MLP        -0.026    0.444
+L13.H7        +0.024    0.695
+L13.H20       +0.023    0.679
+L10.H14       -0.021    0.307
+L13.H4        +0.020    0.781
+L11.H26       +0.020    0.686
+L11.H25       +0.019    0.686
+L11.H27       +0.019    0.718
+L6.H9         +0.019    0.660
+L4.MLP        +0.019    0.666
+L9.H26        +0.017    0.692
+L11.H22       -0.017    0.373
+L13.H25       +0.016    0.753
+L13.H14       +0.016    0.632
+L10.H20       +0.015    0.659
+
+===== window w59: decomposition check, rel err vs stored segs median 0.0015 max 0.0063
+total gap (full-data dir) 11.819; OOF AUC of full sum 0.680
+per layer share of gap  attn: +0.03 +0.02 +0.02 +0.04 +0.04 +0.03 +0.07 +0.05 +0.08 +0.11 +0.12 +0.09 +0.10 +0.21
+                         mlp: +0.01 +0.01 +0.01 +0.00 +0.00 -0.01 +0.00 +0.01 +0.00 -0.03 -0.02 -0.02 -0.01 +0.02
+                         emb: +0.00
+OOF AUC of residual up to layer l: 0.63 0.64 0.64 0.64 0.65 0.63 0.65 0.64 0.66 0.66 0.67 0.68 0.67 0.68
+attention total +1.01, MLP total -0.01
+concentration: top 5 comps 0.10, top 20 0.28, top 50 0.50 of |gap|
+component  gap share  OOF AUC
+L13.H18       -0.037    0.184
+L9.MLP        -0.033    0.339
+L13.H17       +0.029    0.747
+L13.H16       +0.028    0.717
+L10.H19       +0.028    0.775
+L13.H20       +0.025    0.794
+L13.H7        +0.023    0.660
+L13.MLP       +0.023    0.559
+L11.H22       -0.022    0.245
+L6.H9         +0.020    0.766
+L11.H26       +0.019    0.753
+L9.H26        +0.018    0.744
+L11.H27       +0.018    0.762
+L12.H2        +0.018    0.688
+L10.H14       -0.017    0.233
+L7.H26        +0.016    0.744
+L8.H1         +0.016    0.702
+L13.H4        +0.016    0.816
+L11.H24       +0.016    0.818
+L10.MLP       -0.015    0.398
+
+===== tokens, window w05 (per-token projection on full-data direction; + = robust-looking)
+L13.H16   gap share +0.04  mean|v|=0.326
+   robust-pushing tokens: '_b'(+1.5), '}('(+1.4), ' log'(+1.4), 'log'(+1.2), '\\'(+1.1), '�'(+1.1), ')('(+1.0), ' \\('(+1.0)
+   fragile-pushing tokens: ' around'(-2.8), '-axis'(-2.7), 'θ'(-2.4), ' vs'(-2.4), ' R'(-2.4), ' their'(-2.3), ' circle'(-2.3), ' square'(-2.2)
+   mean per token: robust +0.1020 fragile -0.3173
+L13.MLP   gap share +0.04  mean|v|=3.366
+   robust-pushing tokens: ' hold'(+3.4), 'Okay'(+3.1), ' �'(+2.2), 'times'(+2.1), '(-'(+1.9), ' times'(+1.8), ' ln'(+1.8), ' sin'(+1.7)
+   fragile-pushing tokens: ' But'(-0.0), ' but'(+0.0), ' says'(+0.0), 'But'(+0.0), ' would'(+0.1), ' which'(+0.1), ' you'(+0.1), ' So'(+0.1)
+   mean per token: robust +3.1883 fragile +2.8271
+L13.H18   gap share -0.03  mean|v|=0.351
+   robust-pushing tokens: '-axis'(+1.9), ' (-'(+1.9), ' opposite'(+1.8), ' around'(+1.7), ' Carl'(+1.7), 'ar'(+1.6), ' M'(+1.6), ' coordinates'(+1.6)
+   fragile-pushing tokens: '}('(-3.3), 'log'(-2.8), ' log'(-2.6), '_b'(-2.2), ' gcd'(-1.9), ' integers'(-1.7), '�'(-1.6), ' product'(-1.5)
+   mean per token: robust -0.1968 fragile +0.1896
+L10.H19   gap share +0.03  mean|v|=0.253
+   robust-pushing tokens: ' positive'(+1.9), ' equations'(+1.9), ' integer'(+1.6), ' \\('(+1.5), ' integers'(+1.4), ' check'(+1.3), ' than'(+1.3), 'log'(+1.3)
+   fragile-pushing tokens: ' their'(-1.9), ' Carl'(-1.8), ' opposite'(-1.7), ' vs'(-1.7), ' Sergey'(-1.7), ' probability'(-1.7), ' around'(-1.7), 'ar'(-1.6)
+   mean per token: robust +0.1569 fragile -0.1913
+L13.H17   gap share +0.03  mean|v|=0.255
+   robust-pushing tokens: ' N'(+1.3), 'times'(+1.2), '(-'(+1.1), 'b'(+1.1), ' than'(+1.1), 'log'(+1.0), '^('(+1.0), ' integers'(+1.0)
+   fragile-pushing tokens: '-axis'(-2.7), ' along'(-2.6), 'θ'(-2.6), ' segment'(-2.5), ' (-'(-2.3), ' center'(-2.2), ' around'(-2.1), ' their'(-2.0)
+   mean per token: robust +0.1066 fragile -0.2138
+
+===== tokens, window w59 (per-token projection on full-data direction; + = robust-looking)
+L13.H18   gap share -0.04  mean|v|=0.336
+   robust-pushing tokens: 'cos'(+2.3), '-axis'(+2.1), 'θ'(+2.1), ' coordinates'(+1.8), ' positions'(+1.7), ' cos'(+1.6), ' sin'(+1.6), ' position'(+1.5)
+   fragile-pushing tokens: 'log'(-2.8), ' log'(-2.3), '�'(-2.1), '_b'(-2.1), '-digit'(-2.1), ' ln'(-1.9), ' integer'(-1.5), ' prime'(-1.5)
+   mean per token: robust -0.2512 fragile +0.1797
+L9.MLP    gap share -0.03  mean|v|=0.672
+   robust-pushing tokens: ' woman'(+2.1), ' man'(+1.4), ' position'(+0.8), ' opposite'(+0.8), ' π'(+0.5), ' her'(+0.5), ' radius'(+0.5), ' has'(+0.4)
+   fragile-pushing tokens: ' let'(-1.9), ' minutes'(-1.9), ' think'(-1.8), '-digit'(-1.7), ' Let'(-1.7), '*'(-1.7), '*('(-1.6), ' make'(-1.6)
+   mean per token: robust -0.6638 fragile -0.2907
+L13.H17   gap share +0.03  mean|v|=0.237
+   robust-pushing tokens: ' integer'(+1.3), ' rem'(+1.2), 'b'(+1.2), '-digit'(+1.2), ' s'(+1.1), ' prime'(+1.0), '9'(+1.0), ' N'(+1.0)
+   fragile-pushing tokens: '-axis'(-3.0), 'θ'(-2.6), 'cos'(-2.5), ' coordinates'(-2.2), ' line'(-2.1), ' circle'(-2.1), ' sin'(-2.0), 'i'(-2.0)
+   mean per token: robust +0.1223 fragile -0.2105
+L13.H16   gap share +0.03  mean|v|=0.229
+   robust-pushing tokens: '�'(+2.3), '_b'(+2.2), 'log'(+2.1), '-digit'(+1.9), ' rem'(+1.9), ' log'(+1.7), ' prime'(+1.4), ' ln'(+1.3)
+   fragile-pushing tokens: 'cos'(-2.7), ' Carl'(-2.3), '-axis'(-2.2), ' v'(-2.2), ' Jon'(-2.2), ' cos'(-2.0), ' π'(-2.0), ' sin'(-1.9)
+   mean per token: robust +0.1419 fragile -0.1795
+L10.H19   gap share +0.03  mean|v|=0.200
+   robust-pushing tokens: ' ln'(+1.4), ' log'(+1.4), 'log'(+1.2), ' make'(+1.2), ' check'(+1.2), ' s'(+1.2), '-digit'(+1.2), 'We'(+1.1)
+   fragile-pushing tokens: '-axis'(-2.1), 'cos'(-1.8), ' units'(-1.8), ' distance'(-1.7), ' coordinates'(-1.7), ' v'(-1.6), ' probability'(-1.6), ' cos'(-1.6)
+   mean per token: robust +0.1377 fragile -0.1775
+
+===== topic confound check (keyword topic from problem text)
+DeepSeek-R1-0528   {'geometry': '3R/2F', 'number theory': '4R/2F', 'other/tie': '1R/0F'}
+Olmo-3-7B-Think    {'geometry': '2R/1F', 'number theory': '5R/1F'}
+Qwen3.5-4B         {'geometry': '3R/0F', 'number theory': '4R/4F', 'other/tie': '1R/0F'}
+Skywork-OR1-Math   {'geometry': '9R/6F', 'number theory': '12R/7F', 'other/tie': '11R/3F'}
+gpt-oss:high       {'geometry': '5R/1F', 'number theory': '8R/1F'}
+gpt-oss:low        {'geometry': '2R/1F', 'number theory': '3R/1F'}
+gpt-oss:medium     {'geometry': '3R/1F', 'number theory': '7R/4F'}
+
+Skywork: AUC(robust) of keyword score (nt - geo): 0.513
+pooled all models AUC(nt-geo): 0.494
+Skywork seg OOF p_seg AUC: 0.766 | corr(p_seg, nt-geo): 0.37
+Skywork seg AUC within topic: {'geometry': (0.87, 15), 'number theory': (0.73, 19), 'other/tie': (0.67, 14)}

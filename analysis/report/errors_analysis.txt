@@ -1,0 +1,222 @@
+
+== confusion, all 118: n=118 fragile=35
+          at .5: TP  FN  FP   TN  recall prec acc    matched: TP  FN  FP   TN  recall
+seg              11  24   2   81    0.31 0.85 0.78              17  18  18   65    0.49
+traj              9  26   2   81    0.26 0.82 0.76              21  14  14   69    0.60
+attn              1  34   0   83    0.03 1.00 0.71              14  21  21   62    0.40
+whitebox         16  19   2   81    0.46 0.89 0.82              23  12  12   71    0.66
+tx               14  21   6   77    0.40 0.70 0.77              23  12  12   71    0.66
+stack            22  13   4   79    0.63 0.85 0.86              25  10  10   73    0.71
+
+== confusion, cases with attention data: n=81 fragile=26
+          at .5: TP  FN  FP   TN  recall prec acc    matched: TP  FN  FP   TN  recall
+seg               9  17   2   53    0.35 0.82 0.77              13  13  13   42    0.50
+traj              6  20   1   54    0.23 0.86 0.74              15  11  11   44    0.58
+attn              1  25   0   55    0.04 1.00 0.69              13  13  13   42    0.50
+whitebox         12  14   2   53    0.46 0.86 0.80              17   9   9   46    0.65
+tx               10  16   3   52    0.38 0.77 0.77              17   9   9   46    0.65
+stack            17   9   2   53    0.65 0.89 0.86              19   7   7   48    0.73
+
+== by configuration, TP/FN/FP/TN at .5
+                               seg          traj          attn      whitebox            tx         stack
+DeepSeek-R1-0528           0/4/0/8       1/3/0/8       1/3/0/8       2/2/0/8       1/3/0/8       3/1/0/8
+Olmo-3-7B-Think            0/2/0/7       1/1/0/7       0/2/0/7       0/2/0/7       2/0/0/7       2/0/0/7
+Qwen3.5-4B                 2/2/0/8       1/3/0/8       0/4/0/8       2/2/0/8       1/3/0/8       3/1/0/8
+Skywork-OR1-Math          7/9/2/30     3/13/1/31     0/16/0/32      8/8/2/30     6/10/3/29      9/7/2/30
+gpt-oss:high              0/2/0/13      0/2/0/13      0/2/0/13      0/2/0/13      1/1/2/11      0/2/2/11
+gpt-oss:low                0/2/0/5       0/2/1/4       0/2/0/5       0/2/0/5       0/2/1/4       0/2/0/5
+gpt-oss:medium            2/3/0/10      3/2/0/10      0/5/0/10      4/1/0/10      3/2/0/10      5/0/0/10
+
+== who catches the 35 fragile cases at .5 (seg, traj, attn; attn on all cases, intercept without data)
+f5_seg  f5_traj  f5_attn
+False   False    False      18
+                 True        1
+        True     False       5
+True    False    False       7
+        True     False       4
+at matched flag rate:
+fm_seg  fm_traj  fm_attn
+False   False    False      7
+                 True       4
+        True     False      3
+                 True       4
+True    False    False      2
+                 True       1
+        True     False      9
+                 True       5
+error overlap: pairs both wrong / either wrong, fragile at .5
+  seg-traj: both missed 19, one missed 12
+  seg-attn: both missed 23, one missed 12
+  traj-attn: both missed 25, one missed 10
+  seg-tx: both missed 16, one missed 13
+  traj-tx: both missed 17, one missed 13
+corr of OOF p within model:
+            p_seg  p_traj  p_attn  p_whitebox  p_tx  p_stack
+p_seg        1.00    0.49    0.39        0.89  0.52     0.80
+p_traj       0.49    1.00    0.28        0.78  0.36     0.65
+p_attn       0.39    0.28    1.00        0.49  0.25     0.39
+p_whitebox   0.89    0.78    0.49        1.00  0.51     0.86
+p_tx         0.52    0.36    0.25        0.51  1.00     0.86
+p_stack      0.80    0.65    0.39        0.86  0.86     1.00
+
+== context by outcome (stack at .5)
+-- seg at .5
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   24   0.61        0.29         0.25          0.12   0.12    0.88  4096.0  286.5  0.42   0.81       0.67
+FP    2   0.75        0.50         0.00          0.00   0.00    1.00  4096.0  207.5  0.00   1.00       0.00
+TN   81   0.79        0.65         0.12          0.36   0.38    0.67  4094.0  251.0  0.00   1.00       0.73
+TP   11   0.66        0.27         0.18          0.00   0.00    1.00  4096.0  432.0  0.50   0.88       0.45
+-- seg matched
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   18   0.62        0.39         0.28          0.17   0.17    0.83  4096.0  354.0  0.44   0.81       0.67
+FP   18   0.57        0.39         0.28          0.22   0.22    0.83  4096.0  227.0  0.00   0.94       0.78
+TN   65   0.85        0.72         0.08          0.38   0.42    0.63  4094.0  251.0  0.00   1.00       0.69
+TP   17   0.64        0.18         0.18          0.00   0.00    1.00  4096.0  310.0  0.50   0.88       0.53
+-- traj at .5
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   26   0.63        0.31         0.23          0.12   0.12    0.88  4096.0  308.5  0.50   0.88       0.54
+FP    2   1.00        1.00         0.00          1.00   1.00    0.00  2263.5  184.0  0.02   1.00       0.50
+TN   81   0.78        0.64         0.12          0.33   0.36    0.69  4096.0  251.0  0.00   1.00       0.72
+TP    9   0.61        0.22         0.22          0.00   0.00    1.00  4096.0  551.0  0.30   0.75       0.78
+-- traj matched
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   14   0.53        0.29         0.36          0.14   0.14    0.86  4096.0  286.5  0.40   0.75       0.71
+FP   14   0.67        0.57         0.21          0.21   0.21    0.86  4096.0  216.5  0.02   1.00       0.57
+TN   69   0.81        0.67         0.10          0.38   0.41    0.64  4094.0  251.0  0.00   1.00       0.74
+TP   21   0.70        0.29         0.14          0.05   0.05    0.95  4096.0  343.0  0.50   0.88       0.52
+-- attn at .5
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   34   0.62        0.29         0.24          0.09   0.09    0.91  4096.0  326.5  0.47   0.88       0.62
+TN   83   0.79        0.65         0.12          0.35   0.37    0.67  4096.0  251.0  0.00   1.00       0.71
+TP    1   0.75        0.00         0.00          0.00   0.00    1.00  4096.0  246.0  0.25   0.12       0.00
+-- attn matched
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   21   0.57        0.24         0.29          0.10   0.10    0.90  4096.0  407.0   0.4   0.75       0.71
+FP   21   0.72        0.62         0.14          0.24   0.29    0.76  4096.0  292.0   0.0   1.00       0.76
+TN   62   0.81        0.66         0.11          0.39   0.40    0.65  4094.0  248.5   0.0   1.00       0.69
+TP   14   0.72        0.36         0.14          0.07   0.07    0.93  4096.0  234.0   0.5   0.88       0.43
+-- stack at .5
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   13   0.72        0.54         0.23          0.23   0.23    0.77  4096.0  309.0  0.50   1.00       0.54
+FP    4   0.41        0.25         0.25          0.00   0.00    1.00  4095.0  352.5  0.05   0.56       0.50
+TN   79   0.81        0.67         0.11          0.37   0.39    0.66  4096.0  251.0  0.00   1.00       0.72
+TP   22   0.57        0.14         0.23          0.00   0.00    1.00  4096.0  326.5  0.34   0.75       0.64
+-- stack matched
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   10   0.66        0.50          0.3          0.20   0.20    0.80  4096.0  416.0  0.50   0.94       0.60
+FP   10   0.51        0.20          0.3          0.10   0.10    0.90  4096.0  303.0  0.00   0.88       0.70
+TN   73   0.83        0.71          0.1          0.38   0.41    0.64  4094.0  251.0  0.00   1.00       0.71
+TP   25   0.62        0.20          0.2          0.04   0.04    0.96  4096.0  309.0  0.43   0.75       0.60
+-- tx at .5
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   21   0.69        0.43         0.24          0.14   0.14    0.86  4096.0  308.0  0.50   1.00       0.52
+FP    6   0.56        0.17         0.17          0.17   0.17    0.83  4095.0  377.0  0.00   0.88       0.83
+TN   77   0.81        0.69         0.12          0.36   0.39    0.66  4096.0  251.0  0.00   1.00       0.70
+TP   14   0.54        0.07         0.21          0.00   0.00    1.00  4096.0  429.5  0.36   0.69       0.71
+-- tx matched
+      n  solve  solved_all  solved_none  greedy_right  boxed  capped  tokens  chars  drop  agree  organiser
+out                                                                                                        
+FN   12   0.78        0.58         0.17          0.17   0.17    0.83  4096.0  277.5   0.5   1.00       0.42
+FP   12   0.57        0.17         0.25          0.08   0.08    0.92  4096.0  261.0   0.0   0.88       0.75
+TN   71   0.83        0.73         0.10          0.39   0.42    0.63  4094.0  251.0   0.0   1.00       0.70
+TP   23   0.55        0.13         0.26          0.04   0.04    0.96  4096.0  343.0   0.4   0.75       0.70
+
+== recall (matched) and flag rate by context
+-- solve band
+           n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+0       18.0   8.0        0.38         0.38         0.25          0.62    0.50     0.30     0.30      0.30
+<=.5    12.0   4.0        0.50         0.50         0.25          1.00    0.38     0.25     0.38      0.25
+.5-.99  24.0  13.0        0.69         0.77         0.46          0.85    0.27     0.09     0.18      0.27
+1       64.0  10.0        0.30         0.60         0.50          0.50    0.13     0.15     0.24      0.04
+-- capped
+          n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+False  30.0   3.0        0.00         0.33         0.33          0.33    0.11     0.07     0.19      0.04
+True   88.0  32.0        0.53         0.62         0.41          0.75    0.27     0.21     0.29      0.16
+-- greedy right
+        n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+0.0  86.0  32.0        0.53         0.62         0.41          0.75    0.26      0.2     0.30      0.17
+1.0  32.0   3.0        0.00         0.33         0.33          0.33    0.14      0.1     0.17      0.03
+-- topic
+                  n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+combinatorics   5.0   3.0        0.33         0.67         0.67          0.33    0.00     0.00     0.50      0.00
+geometry       40.0  13.0        0.46         0.54         0.31          0.85    0.37     0.30     0.30      0.15
+number         60.0  17.0        0.53         0.65         0.41          0.71    0.16     0.07     0.26      0.12
+other          13.0   2.0        0.50         0.50         0.50          0.50    0.09     0.27     0.09      0.09
+-- source
+                  n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+labelgen       38.0  14.0        0.57         0.71         0.57          0.71    0.17     0.25     0.21      0.12
+train-main-v2  80.0  21.0        0.43         0.52         0.29          0.71    0.24     0.14     0.27      0.12
+-- drop band
+          n  frag  seg recall  traj recall  attn recall  stack recall  seg FA  traj FA  attn FA  stack FA
+<=0    49.0   0.0         NaN          NaN          NaN           NaN    0.22     0.12     0.27      0.12
+0-.2   34.0   0.0         NaN          NaN          NaN           NaN    0.21     0.24     0.24      0.12
+.2-.3  11.0  11.0        0.55         0.64         0.27          0.91     NaN      NaN      NaN       NaN
+.3-.5  15.0  15.0        0.33         0.53         0.40          0.60     NaN      NaN      NaN       NaN
+>.5     9.0   9.0        0.67         0.67         0.56          0.67     NaN      NaN      NaN       NaN
+
+== fragile: caught vs missed tests (matched), Fisher / MWU
+seg    caught 17 missed 18 | solved-all caught 3/17 missed 7/18 Fisher p 0.264 | solve med 0.75/0.75 MWU p 0.722 | drop med 0.50/0.43 p 0.739 | chars p 0.399
+traj   caught 21 missed 14 | solved-all caught 6/21 missed 4/14 Fisher p 1.000 | solve med 0.75/0.62 MWU p 0.368 | drop med 0.50/0.40 p 0.865 | chars p 0.143
+attn   caught 14 missed 21 | solved-all caught 5/14 missed 5/21 Fisher p 0.474 | solve med 0.75/0.75 MWU p 0.246 | drop med 0.50/0.40 p 0.135 | chars p 0.231
+stack  caught 25 missed 10 | solved-all caught 5/25 missed 5/10 Fisher p 0.107 | solve med 0.75/0.94 MWU p 0.302 | drop med 0.43/0.50 p 0.238 | chars p 0.315
+
+== fragile cases missed by seg, traj, attn all at matched rate
+                                                   model         source     topic  solve  greedy_correct  capped  max_drop  p_seg  p_traj  p_attn  p_tx  p_stack
+case_id                                                                                                                                                         
+DeepSeek-R1-0528-Qwen3-8B:d47975ec2ba3  DeepSeek-R1-0528  train-main-v2  geometry   0.00             0.0    True      0.30   0.78    0.66    0.75  0.46     0.52
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  DeepSeek-R1-0528  train-main-v2    number   0.00             0.0    True      0.40   0.81    0.85    0.84  0.52     0.79
+gpt-oss-120b:high:a09aac07cb64              gpt-oss:high  train-main-v2  geometry   0.00             0.0    True      0.40   0.93    0.89    0.71  0.39     0.83
+Olmo-3-7B-Think:11ff3e02ab22             Olmo-3-7B-Think  train-main-v2  geometry   0.50             0.0    True      0.25   0.69    0.83    0.71  0.24     0.38
+gpt-oss-120b:high:757506c4e1d1              gpt-oss:high  train-main-v2    number   0.88             0.0    True      0.59   0.79    0.66    0.71  0.56     0.72
+Skywork-OR1-Math-7B:2347acb5eb3b        Skywork-OR1-Math       labelgen     other   1.00             1.0   False      0.50   0.92    0.90    0.71  0.83     0.95
+gpt-oss-120b:low:f7b4a98af9dd                gpt-oss:low  train-main-v2  geometry   1.00             1.0   False      0.25   0.80    0.77    0.71  0.59     0.76
+
+== fragile cases caught by at least two of seg, traj, attn
+                                                   model         source          topic  solve  greedy_correct  capped  max_drop  p_seg  p_traj  p_attn  p_tx  p_stack
+case_id                                                                                                                                                              
+Qwen3.5-4B:7443669f7e90                       Qwen3.5-4B  train-main-v2         number   0.00             0.0    True      0.27   0.52    0.38    0.52  0.69     0.40
+Qwen3.5-4B:45c534741418                       Qwen3.5-4B  train-main-v2         number   0.00             0.0    True      0.68   0.48    0.60    0.72  0.51     0.39
+Skywork-OR1-Math-7B:556fcb223763        Skywork-OR1-Math       labelgen       geometry   0.50             0.0    True      0.50   0.44    0.54    0.66  0.41     0.25
+gpt-oss-120b:medium:57b6ba21f3f5          gpt-oss:medium  train-main-v2         number   0.50             0.0    True      0.30   0.55    0.44    0.71  0.42     0.28
+gpt-oss-120b:medium:7e76250549ad          gpt-oss:medium  train-main-v2         number   0.62             0.0    True      0.27   0.31    0.49    0.71  0.26     0.14
+Skywork-OR1-Math-7B:ceaf79b0d8f5        Skywork-OR1-Math       labelgen          other   0.75             0.0    True      0.25   0.44    0.40    0.64  0.66     0.39
+Skywork-OR1-Math-7B:357603fe2192        Skywork-OR1-Math       labelgen       geometry   0.75             0.0    True      0.75   0.62    0.60    0.70  0.61     0.57
+Skywork-OR1-Math-7B:0ad93fe26435        Skywork-OR1-Math       labelgen         number   0.75             0.0    True      0.75   0.89    0.56    0.63  0.64     0.76
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd  DeepSeek-R1-0528       labelgen         number   0.75             0.0    True      0.25   0.77    0.53    0.47  0.72     0.50
+Skywork-OR1-Math-7B:4884c0258b65        Skywork-OR1-Math       labelgen         number   0.75             0.0    True      0.25   0.18    0.58    0.65  0.41     0.21
+Skywork-OR1-Math-7B:02103658ef10        Skywork-OR1-Math       labelgen       geometry   0.75             0.0    True      0.75   0.50    0.64    0.64  0.58     0.45
+Skywork-OR1-Math-7B:af2372bd19e1        Skywork-OR1-Math       labelgen  combinatorics   0.75             0.0    True      0.75   0.38    0.59    0.63  0.26     0.15
+gpt-oss-120b:medium:d9e9c4d93e19          gpt-oss:medium  train-main-v2         number   0.88             0.0    True      0.36   0.52    0.54    0.71  0.58     0.45
+Skywork-OR1-Math-7B:335cfaaf1b6e        Skywork-OR1-Math  train-main-v2       geometry   0.88             0.0    True      0.52   0.49    0.43    0.59  0.42     0.23
+Skywork-OR1-Math-7B:43a47a368257        Skywork-OR1-Math       labelgen       geometry   1.00             0.0    True      0.50   0.43    0.61    0.67  0.76     0.57
+Olmo-3-7B-Think:7ee9d4437899             Olmo-3-7B-Think  train-main-v2         number   1.00             0.0    True      0.50   0.73    0.38    0.63  0.47     0.43
+gpt-oss-120b:low:7443669f7e90                gpt-oss:low  train-main-v2         number   1.00             1.0   False      0.43   0.73    0.56    0.71  0.67     0.66
+Skywork-OR1-Math-7B:f8582ebf459f        Skywork-OR1-Math       labelgen       geometry   1.00             0.0    True      0.50   0.37    0.49    0.62  0.81     0.53
+gpt-oss-120b:medium:757506c4e1d1          gpt-oss:medium  train-main-v2         number   1.00             0.0    True      0.54   0.42    0.56    0.71  0.59     0.39
+
+== robust flagged by at least two (false alarms)
+                                                   model         source     topic  solve  greedy_correct  capped  max_drop  p_seg  p_traj  p_attn  p_tx  p_stack
+case_id                                                                                                                                                         
+DeepSeek-R1-0528-Qwen3-8B:a59a836b9807  DeepSeek-R1-0528  train-main-v2  geometry   0.00             0.0    True      0.04   0.72    0.60    0.73  0.72     0.64
+DeepSeek-R1-0528-Qwen3-8B:f862f0368b2a  DeepSeek-R1-0528  train-main-v2  geometry   0.00             0.0    True      0.03   0.75    0.62    0.85  0.70     0.75
+DeepSeek-R1-0528-Qwen3-8B:d06c3e7f2d19  DeepSeek-R1-0528  train-main-v2    number   0.00             0.0    True      0.08   0.57    0.78    0.52  0.63     0.63
+gpt-oss-120b:high:9dd85c12874d              gpt-oss:high  train-main-v2    number   0.00             0.0    True      0.10   0.71    0.65    0.71  0.21     0.30
+gpt-oss-120b:high:51697b0daa5c              gpt-oss:high  train-main-v2  geometry   0.12             0.0    True      0.10   0.68    0.53    0.71  0.26     0.34
+Skywork-OR1-Math-7B:3f2e57075a10        Skywork-OR1-Math       labelgen  geometry   0.50             0.0    True      0.00   0.24    0.58    0.67  0.47     0.23
+Skywork-OR1-Math-7B:a5f56d0bbefd        Skywork-OR1-Math       labelgen  geometry   0.75             0.0    True     -0.25   0.62    0.76    0.65  0.62     0.63
+Skywork-OR1-Math-7B:d06c3e7f2d19        Skywork-OR1-Math  train-main-v2    number   0.88             0.0    True      0.08   0.66    0.84    0.58  0.57     0.65
+Skywork-OR1-Math-7B:c0aff28b8c4a        Skywork-OR1-Math       labelgen     other   1.00             0.0    True      0.00   0.47    0.54    0.64  0.69     0.48
+Skywork-OR1-Math-7B:5a51def1060d        Skywork-OR1-Math       labelgen  geometry   1.00             1.0    True      0.00   0.76    0.62    0.63  0.79     0.77
+Olmo-3-7B-Think:a59a836b9807             Olmo-3-7B-Think  train-main-v2  geometry   1.00             0.0    True      0.04   0.68    0.55    0.66  0.60     0.56
+Skywork-OR1-Math-7B:cba4eb5fe5dc        Skywork-OR1-Math  train-main-v2    number   1.00             0.0    True      0.00   0.66    0.63    0.65  0.48     0.51
+gpt-oss-120b:low:a59a836b9807                gpt-oss:low  train-main-v2  geometry   1.00             1.0   False     -0.05   0.68    0.66    0.71  0.73     0.70
+gpt-oss-120b:medium:a59a836b9807          gpt-oss:medium  train-main-v2  geometry   1.00             1.0   False      0.00   0.67    0.78    0.71  0.87     0.85

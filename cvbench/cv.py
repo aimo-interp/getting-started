@@ -212,6 +212,17 @@ def m_perturb(cases, args):
                    f"budget={args.budget}; forced-answer agreement + dlogp")
 
 
+def m_challenge(cases, args):
+    """Self-challenge / CoVe (challenge.py): share of the model's own answers kept when challenged, log p(A) after."""
+    rows = []
+    for c in cases.itertuples():
+        p = DATA / "challenge" / safe(c.model_id) / f"{c.group}.json"
+        rows.append(json.loads(p.read_text()) if p.is_file() else {})
+    t = pd.DataFrame(rows, index=cases.index).reindex(columns=["kept_challenge", "kept_cove", "lp_A"])
+    return t.astype(float), (f"4 own 16k samples challenged ('might be wrong' / CoVe), T=0.6, 4,096 tokens: answer kept "
+                             f"+ log p(A) after the challenge; {int(t.kept_challenge.notna().sum())} cases covered")
+
+
 def acts_file(model_id, group):
     return DATA / "acts" / safe(model_id) / f"{group}.npz"
 
@@ -310,6 +321,7 @@ METHODS = {
     "entropy_trace": ("blackbox", m_entropy_trace),
     "resample": ("blackbox", m_resample),
     "perturb": ("blackbox", m_perturb),
+    "challenge": ("blackbox", m_challenge),
 }
 
 
@@ -364,6 +376,10 @@ def main() -> None:
     parser.add_argument("--len-with-seg", action="store_true", help="len_probe: add the seg_probe 0-5/5-9 scores.")
     parser.add_argument("--sep-answers", default="sampled", choices=["sampled", "forced"],
                         help="sep2_probe: answers as sampled, or with truncated samples budget-forced (force_answers.py).")
+    parser.add_argument("--coe-feats", nargs="+", default=["coe_r", "coe_c"],
+                        choices=["coe_r", "coe_c", "coe_mag", "coe_ang", "coe_mag_var", "coe_ang_var"],
+                        help="coe: Chain-of-Embedding features.")
+    parser.add_argument("--coe-site", default="resp_mean", help="coe: pooled site, resp_mean or seg_<a>_<b>.")
     parser.add_argument("--layer-report", action="store_true", help="Write per-layer AUCs to data/cvbench/layer_report.csv")
     parser.add_argument("--cases", nargs="+", default=list(CASE_FILES), help="Case files under data/cvbench.")
     parser.add_argument("--pool-efforts", action="store_true",

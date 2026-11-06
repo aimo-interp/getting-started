@@ -1,0 +1,7 @@
+Skywork, 48 traces: decile-level correlation with Wait count, removing case and decile means
+  seg score: r -0.402 p 0.000 (shuffling traces) | within case only r -0.319
+  log step : r -0.166 p 0.009 | within case only r -0.187
+across cases: Wait total vs mean seg r -0.655, vs mean step r -0.489; Wait total robust 22.5 fragile 32.6
+Wait total AUC for robust (fewer = robust) 0.706, capped 0.640
+Fragile, predicted fragile seg [-0.35 -1.25 -1.43 -1.05 -0.81 -0.38 -0.73 -0.16 -0.41  0.68] step z [-0.82 -1.35 -1.06 -1.05  0.25  0.44 -0.53 -0.19]
+Fragile, predicted robust seg [ 0.39  0.67  0.14  0.51 -0.12  0.25  0.38  0.02 -0.46 -0.34] step z [ 0.16  1.94  1.82  1.22 -0.55 -0.73  0.94  0.33]

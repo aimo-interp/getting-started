@@ -1,0 +1,2 @@
+gate seg_notopic+traj+tx    acc=0.7780±0.0205 auc=0.8269 bacc=0.6703 | Qwen3.5-4B=0.729; Skywork-OR1-Math-7B=0.751; Olmo-3-7B-Think=0.967; DeepSeek-R1-0528-Qwen3-8B=0.633; gpt-oss-120b:high=0.730; gpt-oss-120b:low=0.707; gpt-oss-120b:medium=0.987
+gate seg_notopic4+traj+tx   acc=0.7784±0.0225 auc=0.8160 bacc=0.6727 | Qwen3.5-4B=0.742; Skywork-OR1-Math-7B=0.746; Olmo-3-7B-Think=0.972; DeepSeek-R1-0528-Qwen3-8B=0.642; gpt-oss-120b:high=0.727; gpt-oss-120b:low=0.714; gpt-oss-120b:medium=0.987

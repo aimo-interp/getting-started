@@ -1,0 +1,128 @@
+scored cases: {'seg': 91, 'traj': 118, 'attn': 81, 'whitebox': 118, 'tx': 118, 'stack': 118} | seg gated off: {'DeepSeek-R1-0528': 10, 'Olmo-3-7B-Think': 1, 'gpt-oss:high': 14, 'gpt-oss:low': 2}
+
+== all cases (fragile positive)
+             n frag | at .5   TP  FN  FP  TN recall  prec | matched  TP  FN recall
+seg         91   29 |         11  18   2  60   0.38  0.85 |         18  11   0.62
+traj       118   35 |          9  26   2  81   0.26  0.82 |         21  14   0.60
+attn        81   26 |          1  25   0  55   0.04  1.00 |         13  13   0.50
+whitebox   118   35 |         15  20   2  81   0.43  0.88 |         23  12   0.66
+tx         118   35 |         13  22   6  77   0.37  0.68 |         23  12   0.66
+stack      118   35 |         20  15   4  79   0.57  0.83 |         25  10   0.71
+
+== capped traces (fragile positive)
+             n frag | at .5   TP  FN  FP  TN recall  prec | matched  TP  FN recall
+seg         64   27 |         11  16   2  35   0.41  0.85 |         18   9   0.67
+traj        88   32 |          9  23   0  56   0.28  1.00 |         20  12   0.62
+attn        67   25 |          1  24   0  42   0.04  1.00 |         13  12   0.52
+whitebox    88   32 |         15  17   2  54   0.47  0.88 |         22  10   0.69
+tx          88   32 |         13  19   5  51   0.41  0.72 |         22  10   0.69
+stack       88   32 |         20  12   4  52   0.62  0.83 |         24   8   0.75
+
+== finished traces (fragile positive)
+             n frag | at .5   TP  FN  FP  TN recall  prec | matched  TP  FN recall
+seg         27    2 |          0   2   0  25   0.00  0.00 |          0   2   0.00
+traj        30    3 |          0   3   2  25   0.00  0.00 |          1   2   0.33
+attn        14    1 |          0   1   0  13   0.00  0.00 |          0   1   0.00
+whitebox    30    3 |          0   3   0  27   0.00  0.00 |          1   2   0.33
+tx          30    3 |          0   3   1  26   0.00  0.00 |          1   2   0.33
+stack       30    3 |          0   3   0  27   0.00  0.00 |          1   2   0.33
+
+== by configuration at .5, TP/FN/FP/TN
+                           seg        traj        attn    whitebox          tx       stack
+DeepSeek-R1-0528       0/1/0/1     1/3/0/8     1/3/0/8     2/2/0/8     1/3/0/8     3/1/0/8
+Olmo-3-7B-Think        0/1/0/7     1/1/0/7     0/2/0/7     0/2/0/7     2/0/0/7     2/0/0/7
+Qwen3.5-4B             2/2/0/8     1/3/0/8     0/4/0/8     2/2/0/8     0/4/0/8     2/2/0/8
+Skywork-OR1-Math      7/9/2/30   3/13/1/31   0/16/0/32    8/8/2/30   6/10/3/29    8/8/2/30
+gpt-oss:high           0/1/0/0    0/2/0/13           -    0/2/0/13    1/1/2/11    0/2/2/11
+gpt-oss:low            0/1/0/4     0/2/1/4           -     0/2/0/5     0/2/1/4     0/2/0/5
+gpt-oss:medium        2/3/0/10    3/2/0/10           -    3/2/0/10    3/2/0/10    5/0/0/10
+
+== problem or model? problems labelled in >=2 configurations
+cases 67 problems 18 | labels agree in 16 | mixed labels 2
+seg    share of score variance between problems 0.52 | same problem, mixed labels: robust scores above fragile in 0/2 pairs = 0.00, over 1 problems, Wilcoxon p nan
+traj   share of score variance between problems 0.45 | same problem, mixed labels: robust scores above fragile in 3/4 pairs = 0.75, over 2 problems, Wilcoxon p nan
+attn   share of score variance between problems 0.47 | same problem, mixed labels: robust scores above fragile in 1/1 pairs = 1.00, over 1 problems, Wilcoxon p nan
+stack  share of score variance between problems 0.70 | same problem, mixed labels: robust scores above fragile in 3/4 pairs = 0.75, over 2 problems, Wilcoxon p nan
+tx     share of score variance between problems 0.65 | same problem, mixed labels: robust scores above fragile in 3/4 pairs = 0.75, over 2 problems, Wilcoxon p nan
+
+most repeated problems: label and call per configuration (stack at .5, R/F label; lowercase = called fragile)
+  26a263ad8113 n=7 'Find the sum of all integer bases $b>9$ for which $17_b$ is ' | Qwen3.:R Olmo-3:R DeepSe:R Skywor:R gpt-os:R gpt-os:R gpt-os:R
+  a59a836b9807 n=7 'Triangle $ABC$ has side length $AB = 20$ and circumradius $R' | Qwen3.:R Olmo-3:R DeepSe:R Skywor:R gpt-os:R gpt-os:R gpt-os:R
+  f862f0368b2a n=7 'An isosceles trapezoid has an inscribed circle tangent to ea' | Qwen3.:R Olmo-3:R DeepSe:R Skywor:R gpt-os:R gpt-os:R gpt-os:R
+  0412b80ad1a4 n=5 'Let $k$ be a real number such that the system\n\\begin{align*}' | Qwen3.:R Olmo-3:R Skywor:R gpt-os:R gpt-os:R
+  2ca839cfbfc6 n=5 'Alice and Bob are each holding some integer number of sweets' | Qwen3.:R DeepSe:R gpt-os:R gpt-os:R gpt-os:R
+  d06c3e7f2d19 n=5 'The Fibonacci numbers are defined as follows: $F_0 = 0$, $F_' | Qwen3.:R DeepSe:R Skywor:R gpt-os:R gpt-os:R
+  7ee9d4437899 n=4 'Let $N$ be the number of positive integer divisors of $17017' | Qwen3.:F Skywor:F Olmo-3:F* DeepSe:F
+  f7b4a98af9dd n=4 'Let $\\triangle ABC$ be a triangle with $D$ on $\\overline{BC}' | Skywor:R gpt-os:R gpt-os:F gpt-os:R
+  7443669f7e90 n=3 'Let $S$ denote the value of the infinite sum\n\\[\n\\frac{1}{9} ' | Qwen3.:F* Skywor:F* gpt-os:F
+  9dca5d882a4c n=3 'Alice writes all positive integers from $1$ to $n$ on the bo' | gpt-os:R gpt-os:R gpt-os:R
+
+== four modes on capped traces, seg+traj; fragile caught by both / missed by both; robust clear / flagged by both (matched)
+mode
+A caught         14
+B missed          6
+C clear          23
+D false alarm     3
+mixed            18
+                 wait    alt  unsure  verify  rep_tail  dup_tail   math  solve  max_drop  chars
+mode                                                                                           
+A caught        9.989  0.181   5.540   1.406     0.046     0.000  0.011   0.75      0.50  326.5
+B missed       10.695  0.411   3.994   1.455     0.060     0.020  0.017   0.50      0.45  214.5
+C clear         7.919  0.486   3.683   2.798     0.023     0.015  0.020   1.00      0.00  251.0
+D false alarm  12.802  1.792   7.112   1.012     0.057     0.014  0.008   1.00      0.00  189.0
+mixed          10.894  0.556   3.211   1.873     0.030     0.014  0.027   0.75      0.06  306.5
+within model z, mean:
+               wait   alt  unsure  verify  rep_tail  dup_tail  math
+mode                                                               
+A caught       0.16  0.16    0.62   -0.39      0.38      0.12 -0.65
+B missed      -0.06 -0.19   -0.23   -0.01      0.44      0.25 -0.17
+C clear       -0.08 -0.08   -0.11    0.24     -0.18      0.09  0.23
+D false alarm  0.61  0.22    0.13   -0.34     -0.38      0.10 -1.31
+mixed         -0.11 -0.00   -0.31    0.06     -0.15     -0.32  0.51
+robust vs fragile among capped, z, MWU p: {'wait': 0.328, 'alt': 0.639, 'unsure': 0.057, 'verify': 0.194, 'rep_tail': 0.024, 'dup_tail': 0.61, 'math': 0.023}
+A vs B, z, MWU p: {'wait': 0.718, 'alt': 0.967, 'unsure': 0.062, 'verify': 0.397, 'rep_tail': 0.602, 'dup_tail': 0.075, 'math': 0.312}
+
+-- A caught
+                                             model         source          topic  solve  max_drop  tokens  p_seg  p_traj  p_attn  p_tx  p_stack  rep_tail
+case_id                                                                                                                                                  
+gpt-oss-120b:medium:7e76250549ad    gpt-oss:medium  train-main-v2         number   0.62      0.27    4090   0.31    0.49    0.71  0.26     0.14      0.00
+Skywork-OR1-Math-7B:af2372bd19e1  Skywork-OR1-Math       labelgen  combinatorics   0.75      0.75    4096   0.38    0.59    0.63  0.26     0.15      0.10
+Skywork-OR1-Math-7B:4884c0258b65  Skywork-OR1-Math       labelgen         number   0.75      0.25    4096   0.18    0.58    0.65  0.41     0.21      0.13
+Skywork-OR1-Math-7B:335cfaaf1b6e  Skywork-OR1-Math  train-main-v2       geometry   0.88      0.52    4096   0.49    0.43    0.59  0.42     0.23      0.00
+Skywork-OR1-Math-7B:556fcb223763  Skywork-OR1-Math       labelgen       geometry   0.50      0.50    4096   0.44    0.54    0.66  0.41     0.25      0.09
+gpt-oss-120b:medium:57b6ba21f3f5    gpt-oss:medium  train-main-v2         number   0.50      0.30    4090   0.55    0.44    0.71  0.42     0.28      0.00
+gpt-oss-120b:medium:757506c4e1d1    gpt-oss:medium  train-main-v2         number   1.00      0.54    4090   0.42    0.56    0.71  0.59     0.39      0.00
+Skywork-OR1-Math-7B:ceaf79b0d8f5  Skywork-OR1-Math       labelgen          other   0.75      0.25    4096   0.44    0.40    0.64  0.66     0.39      0.05
+Qwen3.5-4B:45c534741418                 Qwen3.5-4B  train-main-v2         number   0.00      0.68    4096   0.48    0.60    0.72  0.51     0.39      0.10
+Qwen3.5-4B:7443669f7e90                 Qwen3.5-4B  train-main-v2         number   0.00      0.27    4096   0.52    0.38    0.52  0.69     0.40      0.03
+gpt-oss-120b:medium:d9e9c4d93e19    gpt-oss:medium  train-main-v2         number   0.88      0.36    4090   0.52    0.54    0.71  0.58     0.45      0.00
+Skywork-OR1-Math-7B:f8582ebf459f  Skywork-OR1-Math       labelgen       geometry   1.00      0.50    4096   0.37    0.49    0.62  0.81     0.53      0.47
+Skywork-OR1-Math-7B:43a47a368257  Skywork-OR1-Math       labelgen       geometry   1.00      0.50    4096   0.43    0.61    0.67  0.76     0.57      0.04
+Skywork-OR1-Math-7B:357603fe2192  Skywork-OR1-Math       labelgen       geometry   0.75      0.75    4096   0.62    0.60    0.70  0.61     0.57      0.10
+
+-- B missed
+                                                   model         source          topic  solve  max_drop  tokens  p_seg  p_traj  p_attn  p_tx  p_stack  rep_tail
+case_id                                                                                                                                                        
+Skywork-OR1-Math-7B:b4dc7e5ecb38        Skywork-OR1-Math       labelgen       geometry    0.5      0.50    4096   0.68    0.65    0.64  0.23     0.32      0.17
+Olmo-3-7B-Think:11ff3e02ab22             Olmo-3-7B-Think  train-main-v2       geometry    0.5      0.25    4096   0.69    0.83    0.71  0.24     0.38      0.03
+Qwen3.5-4B:7ee9d4437899                       Qwen3.5-4B  train-main-v2         number    0.0      0.40    4096   0.72    0.75    0.66  0.56     0.67      0.03
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  DeepSeek-R1-0528  train-main-v2         number    0.0      0.40    4096   0.81    0.85    0.84  0.52     0.79      0.01
+Skywork-OR1-Math-7B:7ee9d4437899        Skywork-OR1-Math  train-main-v2         number    1.0      1.00    4096   0.78    0.84    0.65  0.70     0.82      0.09
+Skywork-OR1-Math-7B:84c96fbdf01d        Skywork-OR1-Math       labelgen  combinatorics    1.0      0.50    4096   0.79    0.72    0.63  0.80     0.84      0.10
+
+-- D false alarm
+                                             model         source     topic  solve  max_drop  tokens  p_seg  p_traj  p_attn  p_tx  p_stack  rep_tail
+case_id                                                                                                                                             
+Skywork-OR1-Math-7B:3f2e57075a10  Skywork-OR1-Math       labelgen  geometry    0.5      0.00    4096   0.24    0.58    0.67  0.47     0.23      0.06
+Skywork-OR1-Math-7B:c0aff28b8c4a  Skywork-OR1-Math       labelgen     other    1.0      0.00    4096   0.47    0.54    0.64  0.69     0.48      0.06
+Olmo-3-7B-Think:a59a836b9807       Olmo-3-7B-Think  train-main-v2  geometry    1.0      0.04    4096   0.68    0.55    0.66  0.60     0.56      0.01
+
+== solve 0 cases: finished any of 8 at 16k?
+                                       n  finished_med  capped
+model            source        robust                         
+DeepSeek-R1-0528 train-main-v2 False   3           0.0     1.0
+                               True    5           0.0     1.0
+Qwen3.5-4B       train-main-v2 False   4           0.0     1.0
+                               True    4           0.0     1.0
+gpt-oss:high     train-main-v2 False   1           0.0     1.0
+                               True    1           0.0     1.0

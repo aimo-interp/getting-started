@@ -29,7 +29,8 @@ solved X trace and a failed dX trace from the screen, then runs the curves::
     python solutions/anchors/thought_anchors/resample.py case --case fragile_ninths
     python solutions/anchors/thought_anchors/resample.py case --case robust_erased
 
-Outputs go to ``data/thought_anchors/<problem>__<variant>__<effort>/``:
+Every request is pinned to Crusoe (``--provider``, no fallbacks), so all samples
+come from one deployment. Outputs go to ``data/thought_anchors_crusoe/<problem>__<variant>__<effort>/``:
 ``continuations.jsonl`` (every continuation's full text; reruns resume),
 ``curves.csv``, ``summary.json`` (the sentence at the largest jump of each
 curve, earliest point reaching 0.8), and ``curves.png`` if matplotlib is
@@ -61,7 +62,7 @@ COMPLETIONS_URL = "https://openrouter.ai/api/v1/completions"
 LABELGEN = ROOT / "data" / "labelgen"
 CASES = Path(__file__).resolve().parent / "cases.jsonl"
 TYPE_ORDER = ("distract", "typos", "typos2", "rename", "rephrase")
-OUT = ROOT / "data" / "thought_anchors"
+OUT = ROOT / "data" / "thought_anchors_crusoe"
 TOKENIZERS = {"openai/gpt-oss-120b": "openai/gpt-oss-120b", "qwen/qwen3.5-9b": "Qwen/Qwen3.5-9B",
               "qwen/qwen3-14b": "Qwen/Qwen3-14B"}
 
@@ -408,8 +409,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-tokens", type=int, default=12000)
     parser.add_argument("--workers", type=int, default=32)
     parser.add_argument("--quantizations", nargs="*", default=[])
-    parser.add_argument("--provider", nargs="*", default=[],
-                        help="Pin OpenRouter provider(s), e.g. DeepInfra, so every sample comes from one deployment.")
+    parser.add_argument("--provider", nargs="*", default=["Crusoe"],
+                        help="Pin OpenRouter provider(s) so every sample comes from one deployment; "
+                             "pass --provider with no names to let OpenRouter route freely.")
     parser.add_argument("--out-dir", type=Path, default=OUT)
     return parser.parse_args()
 

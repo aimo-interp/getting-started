@@ -1,3 +1,0 @@
-{"version":"2.1.0","source":"loop","timestamp":"2026-10-31T01:02:10+11:00","status":"BOUNDED","results_tsv":"autoresearch/loop-261031-0015/results.tsv",
-"findings":["effort probe trained on unlabelled sep2 prompts: +.012 over seg+traj (.791 vs .779), inside noise; early-CoT states predict sampled length worse than the last prompt token","LiReF (Hong et al. 2025) projection: label-free, sign-consistent on small models (AUC .68) but not on gpt-oss; flat stacked","neither moves seg+traj+tx (.815)"],
-"config":{"goal":"effort probe + LiReF vs seg+traj","scope":"cvbench/","metric":"cv_score","direction":"higher_is_better","verify":"pyine/bin/python cvbench/stack.py --blocks seg traj effort2"}}

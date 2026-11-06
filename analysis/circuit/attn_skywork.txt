@@ -1,0 +1,117 @@
+
+===== window w05: attention mass by region, mean over all 392 heads: sink=0.105 template=0.109 problem=0.095 cot_far=0.281 cot_recent=0.410
+robust vs fragile, all heads pooled: sink: R 0.106 F 0.102 template: R 0.111 F 0.106 problem: R 0.095 F 0.096 cot_far: R 0.277 F 0.288 cot_recent: R 0.411 F 0.408
+heads where a region mass predicts robustness (|AUC-.5| largest), AUC>.5 = more mass -> robust:
+   L3.H18 template   AUC 0.86  mass R 0.004 F 0.003
+   L2.H27 template   AUC 0.85  mass R 0.004 F 0.003
+   L2.H25 template   AUC 0.84  mass R 0.004 F 0.003
+   L6.H7  cot_recent AUC 0.83  mass R 0.319 F 0.293
+   L2.H21 template   AUC 0.82  mass R 0.003 F 0.002
+   L7.H24 cot_recent AUC 0.81  mass R 0.190 F 0.172
+   L3.H15 template   AUC 0.81  mass R 0.003 F 0.002
+   L2.H17 sink       AUC 0.81  mass R 0.004 F 0.003
+   L2.H16 sink       AUC 0.81  mass R 0.002 F 0.001
+   L2.H13 template   AUC 0.81  mass R 0.008 F 0.006
+   L2.H9  template   AUC 0.81  mass R 0.005 F 0.004
+   L1.H27 template   AUC 0.80  mass R 0.005 F 0.004
+(null: with 392x5 tests at n=48, |AUC-.5| > .25 by chance is common; treat as hypotheses)
+FOCUS heads: region profile (mean over cases) | robust-minus-fragile
+   L13.H4   sink=0.04 template=0.04 problem=0.15 cot_far=0.42 cot_recent=0.34 | +0.004 +0.006 +0.006 -0.036 +0.020
+   L11.H24  sink=0.07 template=0.08 problem=0.16 cot_far=0.47 cot_recent=0.22 | +0.005 +0.006 -0.011 -0.031 +0.031
+   L13.H20  sink=0.06 template=0.06 problem=0.11 cot_far=0.31 cot_recent=0.46 | +0.011 +0.011 +0.005 -0.025 -0.003
+   L10.H19  sink=0.14 template=0.15 problem=0.16 cot_far=0.33 cot_recent=0.22 | +0.010 +0.012 -0.005 -0.015 -0.002
+   L6.H9    sink=0.08 template=0.08 problem=0.14 cot_far=0.43 cot_recent=0.27 | +0.005 +0.005 +0.007 -0.024 +0.007
+   L13.H17  sink=0.06 template=0.07 problem=0.16 cot_far=0.46 cot_recent=0.25 | +0.013 +0.012 +0.003 -0.029 +0.001
+   L13.H16  sink=0.04 template=0.04 problem=0.12 cot_far=0.46 cot_recent=0.33 | +0.008 +0.009 -0.008 -0.040 +0.031
+   L11.H27  sink=0.07 template=0.07 problem=0.13 cot_far=0.44 cot_recent=0.29 | +0.011 +0.012 -0.000 -0.026 +0.004
+   L13.H18  sink=0.01 template=0.02 problem=0.04 cot_far=0.34 cot_recent=0.58 | +0.003 +0.003 +0.003 -0.033 +0.024
+   L11.H22  sink=0.04 template=0.05 problem=0.06 cot_far=0.19 cot_recent=0.66 | +0.001 +0.002 -0.008 -0.022 +0.027
+   L10.H14  sink=0.14 template=0.14 problem=0.07 cot_far=0.18 cot_recent=0.46 | +0.001 +0.001 -0.011 -0.007 +0.016
+FOCUS heads: problem tokens receiving most attention (pooled over cases, per-token mean share)
+   L13.H4   'Let'(0.172), 'A'(0.051), '?'(0.049), '.$'(0.039), '.'(0.038), '$.'(0.037), ')$'(0.028), ' Find'(0.025), '}$'(0.018), ' The'(0.016)
+   L11.H24  'Let'(0.410), 'A'(0.120), '.$'(0.018), '.'(0.017), '$.'(0.015), ' points'(0.014), 'AB'(0.014), '}$'(0.014), ')$'(0.013), '?'(0.012)
+   L13.H20  'Let'(0.352), 'A'(0.115), '.'(0.021), '}$'(0.019), ' '(0.018), '{'(0.017), '$'(0.016), ' $'(0.016), ')$'(0.016), '.$'(0.015)
+   L10.H19  'Let'(0.403), 'A'(0.117), '?'(0.029), '.'(0.021), '$.'(0.017), ' lines'(0.015), '.$'(0.014), ' integers'(0.014), ' circle'(0.014), '}$'(0.014)
+   L6.H9    'Let'(0.290), 'A'(0.086), ' sum'(0.020), ' lines'(0.016), ' Find'(0.014), ' number'(0.013), 'log'(0.013), ' such'(0.013), ' circle'(0.013), ' numbers'(0.012)
+   L13.H17  'Let'(0.231), 'A'(0.077), ' real'(0.038), ' integers'(0.023), '.'(0.021), ' Find'(0.020), '}$'(0.020), '4'(0.018), '.$'(0.018), '$.'(0.018)
+   L13.H16  'Let'(0.199), 'A'(0.059), '.'(0.025), '$.'(0.024), ' circle'(0.023), ')$'(0.019), '.$'(0.019), ' lines'(0.019), '}$'(0.018), '}\\'(0.016)
+   L11.H27  'Let'(0.356), 'A'(0.116), ' Find'(0.027), ' The'(0.022), '.'(0.022), '?'(0.018), '.$'(0.017), '$.'(0.016), ' such'(0.015), '}$'(0.014)
+   L13.H18  'Let'(0.243), 'A'(0.069), ' '(0.023), ' $'(0.021), '{'(0.020), ' the'(0.019), '.'(0.018), '$'(0.018), ')$'(0.015), '}$'(0.015)
+   L11.H22  'Let'(0.520), 'A'(0.154), ' $'(0.019), ' the'(0.015), ' '(0.014), '.'(0.013), '$'(0.013), '}$'(0.012), ' a'(0.010), '?'(0.010)
+   L10.H14  'Let'(0.620), 'A'(0.191), ' $'(0.012), ' '(0.010), ' the'(0.010), '$'(0.010), '.'(0.009), '}$'(0.009), ' a'(0.009), '?'(0.006)
+
+===== window w59: attention mass by region, mean over all 392 heads: sink=0.077 template=0.079 problem=0.086 cot_far=0.363 cot_recent=0.396
+robust vs fragile, all heads pooled: sink: R 0.079 F 0.072 template: R 0.081 F 0.074 problem: R 0.085 F 0.088 cot_far: R 0.359 F 0.369 cot_recent: R 0.396 F 0.396
+heads where a region mass predicts robustness (|AUC-.5| largest), AUC>.5 = more mass -> robust:
+   L5.H3  sink       AUC 0.90  mass R 0.156 F 0.128
+   L5.H3  template   AUC 0.89  mass R 0.158 F 0.130
+   L1.H25 sink       AUC 0.88  mass R 0.000 F 0.000
+   L11.H14 sink       AUC 0.87  mass R 0.082 F 0.062
+   L0.H21 template   AUC 0.87  mass R 0.000 F 0.000
+   L11.H14 template   AUC 0.86  mass R 0.085 F 0.065
+   L6.H26 sink       AUC 0.86  mass R 0.063 F 0.034
+   L0.H19 sink       AUC 0.86  mass R 0.000 F 0.000
+   L11.H27 template   AUC 0.86  mass R 0.033 F 0.019
+   L6.H26 template   AUC 0.86  mass R 0.064 F 0.035
+   L9.H27 template   AUC 0.86  mass R 0.009 F 0.007
+   L9.H27 sink       AUC 0.86  mass R 0.009 F 0.006
+(null: with 392x5 tests at n=48, |AUC-.5| > .25 by chance is common; treat as hypotheses)
+FOCUS heads: region profile (mean over cases) | robust-minus-fragile
+   L13.H4   sink=0.00 template=0.01 problem=0.05 cot_far=0.61 cot_recent=0.32 | +0.003 +0.006 +0.013 -0.014 -0.009
+   L11.H24  sink=0.02 template=0.02 problem=0.10 cot_far=0.69 cot_recent=0.17 | +0.005 +0.005 -0.000 -0.018 +0.008
+   L13.H20  sink=0.00 template=0.00 problem=0.02 cot_far=0.53 cot_recent=0.45 | +0.003 +0.004 +0.007 +0.010 -0.023
+   L10.H19  sink=0.07 template=0.07 problem=0.24 cot_far=0.42 cot_recent=0.19 | +0.020 +0.021 -0.025 -0.002 -0.014
+   L6.H9    sink=0.07 template=0.07 problem=0.08 cot_far=0.52 cot_recent=0.26 | +0.010 +0.010 +0.009 -0.033 +0.003
+   L13.H17  sink=0.00 template=0.01 problem=0.03 cot_far=0.72 cot_recent=0.24 | +0.005 +0.007 +0.016 -0.026 -0.002
+   L13.H16  sink=0.00 template=0.00 problem=0.02 cot_far=0.67 cot_recent=0.31 | +0.002 +0.003 +0.010 -0.033 +0.018
+   L11.H27  sink=0.02 template=0.03 problem=0.12 cot_far=0.56 cot_recent=0.27 | +0.013 +0.015 +0.025 -0.048 -0.005
+   L13.H18  sink=0.00 template=0.00 problem=0.00 cot_far=0.44 cot_recent=0.56 | +0.000 +0.000 +0.001 -0.019 +0.017
+   L11.H22  sink=0.01 template=0.01 problem=0.05 cot_far=0.23 cot_recent=0.69 | +0.003 +0.003 -0.005 -0.016 +0.016
+   L10.H14  sink=0.08 template=0.08 problem=0.20 cot_far=0.18 cot_recent=0.45 | +0.018 +0.018 -0.035 -0.007 +0.007
+FOCUS heads: problem tokens receiving most attention (pooled over cases, per-token mean share)
+   L13.H4   '?'(0.083), ' Find'(0.066), '$.'(0.064), '.$'(0.063), '.'(0.045), ' is'(0.029), ')$'(0.028), ' such'(0.028), ' value'(0.025), ' The'(0.024)
+   L11.H24  'Let'(0.500), 'A'(0.164), '}$'(0.021), '.'(0.021), ' $'(0.020), '.$'(0.019), '?'(0.018), '$'(0.018), '$.'(0.015), ' '(0.015)
+   L13.H20  '.$'(0.057), '?'(0.056), '$.'(0.052), ' Find'(0.044), '.'(0.039), '+n'(0.036), ' prime'(0.035), ' integers'(0.033), ' such'(0.028), '}$'(0.025)
+   L10.H19  'Let'(0.590), 'A'(0.180), ' $'(0.023), '}$'(0.022), ' '(0.020), '$'(0.020), '.'(0.018), ' the'(0.013), ' a'(0.011), '?'(0.010)
+   L6.H9    'Let'(0.531), 'A'(0.163), ' $'(0.017), ' '(0.015), '$'(0.013), '}$'(0.012), '.'(0.012), ' sum'(0.012), ' the'(0.009), ' a'(0.008)
+   L13.H17  ' real'(0.067), ' integers'(0.054), ' Find'(0.050), '4'(0.046), '?'(0.037), '.$'(0.037), '6'(0.034), '$.'(0.033), ' positive'(0.031), ' prime'(0.030)
+   L13.H16  '$.'(0.042), '.$'(0.038), ' lines'(0.035), '?'(0.035), '}\\'(0.032), '.'(0.030), ')$'(0.026), ' circle'(0.026), '+n'(0.023), ' prime'(0.023)
+   L11.H27  'Let'(0.455), 'A'(0.145), '.'(0.022), ' $'(0.022), '}$'(0.020), '$'(0.020), ' '(0.018), ' Find'(0.017), '?'(0.017), ' the'(0.012)
+   L13.H18  'Let'(0.058), ' prime'(0.042), ' integers'(0.039), '?'(0.036), ' real'(0.027), '$.'(0.026), '.$'(0.023), '.'(0.022), ' relatively'(0.021), ' Find'(0.021)
+   L11.H22  'Let'(0.592), 'A'(0.191), ' $'(0.026), '$'(0.020), '}$'(0.020), ' '(0.020), '.'(0.016), ' the'(0.015), ' a'(0.013), '{'(0.010)
+   L10.H14  'Let'(0.681), 'A'(0.214), ' $'(0.020), '}$'(0.017), ' '(0.017), '$'(0.017), '.'(0.014), ' the'(0.011), ' a'(0.010), '{'(0.007)
+
+===== summary scores (label-free: averaged over ALL heads, no head selection)
+window w05, layers 0-13:
+  cot_far mass (higher -> fragile?)          AUC 0.672  perm p 0.052  corr w/ p_seg +0.46  w/ tx agree +0.12
+  sink+template mass                         AUC 0.680  perm p 0.039  corr w/ p_seg +0.40  w/ tx agree +0.36
+  problem mass                               AUC 0.494  perm p 0.956  corr w/ p_seg +0.13  w/ tx agree -0.17
+  cot_recent mass                            AUC 0.688  perm p 0.038  corr w/ p_seg +0.41  w/ tx agree -0.03
+window w05, layers 6-13:
+  cot_far mass (higher -> fragile?)          AUC 0.707  perm p 0.015  corr w/ p_seg +0.53  w/ tx agree +0.16
+  sink+template mass                         AUC 0.678  perm p 0.046  corr w/ p_seg +0.40  w/ tx agree +0.35
+  problem mass                               AUC 0.479  perm p 0.829  corr w/ p_seg +0.07  w/ tx agree -0.16
+  cot_recent mass                            AUC 0.676  perm p 0.045  corr w/ p_seg +0.47  w/ tx agree -0.09
+window w59, layers 0-13:
+  cot_far mass (higher -> fragile?)          AUC 0.650  perm p 0.103  corr w/ p_seg +0.43  w/ tx agree +0.18
+  sink+template mass                         AUC 0.783  perm p 0.001  corr w/ p_seg +0.49  w/ tx agree +0.28
+  problem mass                               AUC 0.348  perm p 0.096  corr w/ p_seg -0.20  w/ tx agree -0.22
+  cot_recent mass                            AUC 0.432  perm p 0.435  corr w/ p_seg -0.05  w/ tx agree -0.12
+window w59, layers 6-13:
+  cot_far mass (higher -> fragile?)          AUC 0.668  perm p 0.059  corr w/ p_seg +0.44  w/ tx agree +0.24
+  sink+template mass                         AUC 0.787  perm p 0.002  corr w/ p_seg +0.49  w/ tx agree +0.29
+  problem mass                               AUC 0.352  perm p 0.094  corr w/ p_seg -0.20  w/ tx agree -0.20
+  cot_recent mass                            AUC 0.420  perm p 0.374  corr w/ p_seg -0.16  w/ tx agree -0.08
+window all 0-9, layers 0-13:
+  cot_far mass (higher -> fragile?)          AUC 0.672  perm p 0.044  corr w/ p_seg +0.47  w/ tx agree +0.15
+  sink+template mass                         AUC 0.736  perm p 0.005  corr w/ p_seg +0.46  w/ tx agree +0.33
+  problem mass                               AUC 0.447  perm p 0.558  corr w/ p_seg +0.03  w/ tx agree -0.21
+  cot_recent mass                            AUC 0.586  perm p 0.336  corr w/ p_seg +0.23  w/ tx agree -0.09
+window all 0-9, layers 6-13:
+  cot_far mass (higher -> fragile?)          AUC 0.703  perm p 0.025  corr w/ p_seg +0.51  w/ tx agree +0.20
+  sink+template mass                         AUC 0.744  perm p 0.007  corr w/ p_seg +0.45  w/ tx agree +0.33
+  problem mass                               AUC 0.438  perm p 0.517  corr w/ p_seg -0.03  w/ tx agree -0.20
+  cot_recent mass                            AUC 0.557  perm p 0.527  corr w/ p_seg +0.21  w/ tx agree -0.11
+  OOF logistic p_seg                  AUC 0.743
+  OOF logistic p_seg + far + sink     AUC 0.771
+  OOF logistic far + sink             AUC 0.709

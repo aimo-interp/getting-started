@@ -1,0 +1,125 @@
+=== 1. Per model: cases, fragile, how often each method is wrong (majority over 20 repeats)
+                   n  frag  seg_gated_off  seg_wrong  stack_wrong  tt_wrong
+m                                                                          
+DeepSeek-R1-0528  12     4             10          4            4         2
+Olmo-3-7B-Think    9     2              1          2            0         1
+Qwen3.5-4B        12     4              0          2            1         2
+Skywork-OR1-Math  48    16              0         11            9        11
+gpt-oss:high      15     2             14          2            4         5
+gpt-oss:low        7     2              2          2            2         2
+gpt-oss:medium    15     5              0          3            0         0
+
+=== 2. Error type: seg misses fragile (FN) vs flags robust (FP)
+seg: wrong=26  missed fragile=24/35  false alarms=2/83
+stack: wrong=20  missed fragile=16/35  false alarms=4/83
+seg wrong on fragile cases, split by gate: {'sum': {False: 18, True: 6}, 'size': {False: 29, True: 6}}
+
+=== 3. Missed-fragile cases (stack), sorted by model
+                                                       m         source  max_drop  base_acc  p_seg  p_tt  p_stack  gated_off  dim_w05  dim_w59  agree  greedy_tokens
+case_id                                                                                                                                                             
+DeepSeek-R1-0528-Qwen3-8B:335cfaaf1b6e  DeepSeek-R1-0528  train-main-v2      0.25       NaN   0.78  0.39     0.62       True     0.15     0.52   0.00           4096
+DeepSeek-R1-0528-Qwen3-8B:d47975ec2ba3  DeepSeek-R1-0528  train-main-v2      0.30       NaN   0.78  0.47     0.64       True     0.00     0.64   0.00           4096
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd  DeepSeek-R1-0528       labelgen      0.25      0.75   0.77  0.58     0.71       True     0.15     0.65   0.12           4096
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  DeepSeek-R1-0528  train-main-v2      0.40       NaN   0.81  0.70     0.79      False     0.53     0.55   0.00           4096
+Qwen3.5-4B:7ee9d4437899                       Qwen3.5-4B  train-main-v2      0.40       NaN   0.72  0.63     0.67      False    -0.02    -0.12   0.00           4096
+Skywork-OR1-Math-7B:43a47a368257        Skywork-OR1-Math       labelgen      0.50      1.00   0.43  0.69     0.51      False    -0.90    -0.86   1.00           4096
+Skywork-OR1-Math-7B:357603fe2192        Skywork-OR1-Math       labelgen      0.75      0.75   0.62  0.56     0.58      False     0.42    -1.19   1.00           4096
+Skywork-OR1-Math-7B:d03cff1d2f5f        Skywork-OR1-Math       labelgen      0.50      1.00   0.84  0.59     0.78      False     0.12     0.65   1.00           4096
+Skywork-OR1-Math-7B:0ad93fe26435        Skywork-OR1-Math       labelgen      0.75      0.75   0.89  0.53     0.82      False     0.74     0.50   0.88           4096
+Skywork-OR1-Math-7B:7ee9d4437899        Skywork-OR1-Math  train-main-v2      1.00       NaN   0.78  0.83     0.83      False     0.54    -0.33   1.00           4096
+Skywork-OR1-Math-7B:84c96fbdf01d        Skywork-OR1-Math       labelgen      0.50      1.00   0.79  0.82     0.85      False    -0.32     0.68   1.00           4096
+Skywork-OR1-Math-7B:2347acb5eb3b        Skywork-OR1-Math       labelgen      0.50      1.00   0.92  0.93     0.96      False     0.86     0.93   1.00           4062
+gpt-oss-120b:high:757506c4e1d1              gpt-oss:high  train-main-v2      0.59       NaN   0.79  0.54     0.72       True     1.12     1.22   0.88           4096
+gpt-oss-120b:high:a09aac07cb64              gpt-oss:high  train-main-v2      0.40       NaN   0.93  0.68     0.89      False     0.98     1.11   0.00           4096
+gpt-oss-120b:low:7443669f7e90                gpt-oss:low  train-main-v2      0.43       NaN   0.73  0.57     0.66       True    -0.33     0.28   1.00           1871
+gpt-oss-120b:low:f7b4a98af9dd                gpt-oss:low  train-main-v2      0.25       NaN   0.80  0.68     0.77      False     0.07     0.33   1.00           1924
+
+=== 3b. False alarms (stack)
+                                                 m         source  max_drop  base_acc  p_seg  p_tt  p_stack  gated_off  dim_w05  dim_w59  agree  greedy_tokens
+case_id                                                                                                                                                       
+Skywork-OR1-Math-7B:3f2e57075a10  Skywork-OR1-Math       labelgen       0.0       0.5   0.24  0.42     0.18      False    -1.66    -1.04   1.00           4096
+Skywork-OR1-Math-7B:c0aff28b8c4a  Skywork-OR1-Math       labelgen       0.0       1.0   0.47  0.56     0.46      False    -0.65    -0.82   1.00           4096
+gpt-oss-120b:high:51697b0daa5c        gpt-oss:high  train-main-v2       0.1       NaN   0.68  0.19     0.33       True    -0.66    -0.45   0.12           4096
+gpt-oss-120b:high:9dd85c12874d        gpt-oss:high  train-main-v2       0.1       NaN   0.71  0.21     0.36       True    -0.64    -0.44   0.00           4096
+
+=== 4. What distinguishes caught vs missed fragile cases (stack)? MWU p; Fisher for flags
+  max_drop        missed med=   0.46 (n=16)  caught med=   0.44 (n=19)  p=0.652
+  dim_w05         missed med=   0.15 (n=16)  caught med=  -0.73 (n=19)  p=0.000
+  dim_w59         missed med=   0.54 (n=16)  caught med=  -0.74 (n=19)  p=0.000
+  agree           missed med=   0.94 (n=16)  caught med=   0.75 (n=19)  p=0.607
+  anchor          missed med=   6.38 (n=16)  caught med=   5.75 (n=19)  p=0.260
+  tx_length       missed med=   8.98 (n=16)  caught med=   9.29 (n=19)  p=0.678
+  greedy_logprob  missed med=  -0.08 (n=16)  caught med=  -0.13 (n=19)  p=0.456
+  diff_last       missed med=   0.57 (n=16)  caught med=   0.54 (n=19)  p=0.202
+  problem_chars   missed med= 290.50 (n=16)  caught med= 343.00 (n=19)  p=0.185
+  hit_cap: {False: {False: 0, True: 19}, True: {False: 3, True: 13}} Fisher p=0.086
+  gated_off: {False: {False: 18, True: 1}, True: {False: 11, True: 5}} Fisher p=0.073
+  by source: {'sum': {'labelgen': 7, 'train-main-v2': 9}, 'size': {'labelgen': 14, 'train-main-v2': 21}}
+  max_drop bucket: {'sum': {Interval(0.0, 0.3, closed='right'): 4, Interval(0.3, 0.5, closed='right'): 8, Interval(0.5, 1.01, closed='right'): 4}, 'size': {Interval(0.0, 0.3, closed='right'): 11, Interval(0.3, 0.5, closed='right'): 15, Interval(0.5, 1.01, closed='right'): 9}}
+
+=== 5. Labelgen fragile cases: which perturbation types broke it, and did we catch it?
+                                                       m  base_acc  max_drop                                      culprits  p_seg  p_tt  p_stack  wrong_seg  wrong_stack
+case_id                                                                                                                                                                 
+Skywork-OR1-Math-7B:4884c0258b65        Skywork-OR1-Math      0.75      0.25                                         typos   0.18  0.37     0.14      False        False
+Skywork-OR1-Math-7B:af2372bd19e1        Skywork-OR1-Math      0.75      0.75  distract+domain+expert+rename+rephrase+typos   0.38  0.20     0.14      False        False
+Skywork-OR1-Math-7B:556fcb223763        Skywork-OR1-Math      0.50      0.50                                distract+typos   0.44  0.31     0.25      False        False
+Skywork-OR1-Math-7B:b4dc7e5ecb38        Skywork-OR1-Math      0.50      0.50                distract+rename+rephrase+typos   0.68  0.22     0.36       True        False
+Skywork-OR1-Math-7B:ceaf79b0d8f5        Skywork-OR1-Math      0.75      0.25                                      rephrase   0.44  0.48     0.36      False        False
+Skywork-OR1-Math-7B:02103658ef10        Skywork-OR1-Math      0.75      0.75                                        domain   0.50  0.54     0.44       True        False
+Skywork-OR1-Math-7B:f8582ebf459f        Skywork-OR1-Math      1.00      0.50                               distract+expert   0.37  0.67     0.46      False        False
+Skywork-OR1-Math-7B:43a47a368257        Skywork-OR1-Math      1.00      0.50                             distract+rephrase   0.43  0.69     0.51      False         True
+Skywork-OR1-Math-7B:357603fe2192        Skywork-OR1-Math      0.75      0.75                  expert+rename+rephrase+typos   0.62  0.56     0.58       True         True
+DeepSeek-R1-0528-Qwen3-8B:80b3f9e870bd  DeepSeek-R1-0528      0.75      0.25                                         typos   0.77  0.58     0.71       True         True
+Skywork-OR1-Math-7B:d03cff1d2f5f        Skywork-OR1-Math      1.00      0.50                                  expert+typos   0.84  0.59     0.78       True         True
+Skywork-OR1-Math-7B:0ad93fe26435        Skywork-OR1-Math      0.75      0.75               distract+domain+rename+rephrase   0.89  0.53     0.82       True         True
+Skywork-OR1-Math-7B:84c96fbdf01d        Skywork-OR1-Math      1.00      0.50                                        expert   0.79  0.82     0.85       True         True
+Skywork-OR1-Math-7B:2347acb5eb3b        Skywork-OR1-Math      1.00      0.50                         rename+rephrase+typos   0.92  0.93     0.96       True         True
+
+  per type: fragile cases where that type dropped accuracy >= .25 -> caught by seg / stack
+  distract  n= 6  seg caught  4  stack caught  4  mean p_stack=0.42
+  domain    n= 3  seg caught  1  stack caught  2  mean p_stack=0.47
+  expert    n= 5  seg caught  2  stack caught  2  mean p_stack=0.56
+  rename    n= 5  seg caught  1  stack caught  2  mean p_stack=0.57
+  rephrase  n= 7  seg caught  3  stack caught  3  mean p_stack=0.53
+  typos     n= 8  seg caught  3  stack caught  4  mean p_stack=0.49
+
+  breadth: n culprit types vs mean p_stack (lower = more fragile-looking):
+            n  p_stack  caught
+n_culprits                    
+1           5     0.50       3
+2           4     0.50       2
+3           1     0.96       0
+4           3     0.59       1
+6           1     0.14       1
+
+  labelgen robust vs fragile: n {False: 24, True: 14}  base_acc<1 among robust: 4  among fragile: 9
+
+=== 6. Labelgen fragile: base accuracy on the original (4 samples) vs caught by stack
+wrong_stack  False  True 
+base_acc                 
+False            6      3
+True             1      4
+Fisher p 0.266
+mean p_stack by (fragile, base_acc==1):
+                size  mean
+frag  base_acc            
+False False        4  0.69
+      True        20  0.86
+True  False        9  0.42
+      True         5  0.71
+
+=== 7. Same problem across models (group 7ee9d4437899)
+                                                       m  ...  wrong_stack
+case_id                                                   ...             
+Qwen3.5-4B:7ee9d4437899                       Qwen3.5-4B  ...         True
+Skywork-OR1-Math-7B:7ee9d4437899        Skywork-OR1-Math  ...         True
+Olmo-3-7B-Think:7ee9d4437899             Olmo-3-7B-Think  ...        False
+DeepSeek-R1-0528-Qwen3-8B:7ee9d4437899  DeepSeek-R1-0528  ...         True
+
+[4 rows x 6 columns]
+Let $N$ be the number of positive integer divisors of $17017^{17}$ that leave a remainder of $5$ when divided by $12$. Find $N$.
+
+problems missed (stack) on >=2 models:
+group
+7ee9d4437899    [Qwen3.5-4B, Skywork-OR1-Math, DeepSeek-R1-0528]
+Name: m, dtype: object

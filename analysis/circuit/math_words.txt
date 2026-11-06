@@ -1,0 +1,64 @@
+Token class sizes (mean fraction of problem tokens): {}
+
+Attention share per class, normalised by its token fraction (1 = uniform), excluding nothing; mean over cases
+cls          function  math word  other   sink  symbol
+w   head                                              
+w05 L10.H14      0.32       0.22   0.24  29.99    0.47
+    L10.H19      0.31       0.79   0.65  18.75    0.67
+    L11.H22      0.41       0.25   0.26  24.50    0.66
+    L11.H24      0.42       0.65   0.62  17.57    0.67
+    L11.H27      0.58       0.61   0.57  17.88    0.69
+    L13.H16      0.48       0.80   0.88   9.40    0.88
+    L13.H17      0.47       0.99   0.63  11.25    0.98
+    L13.H18      0.67       0.51   0.56  10.85    0.98
+    L13.H20      0.36       0.67   0.49  16.48    0.86
+    L13.H4       0.67       0.95   0.75   8.06    1.03
+    L6.H9        0.57       1.09   0.88  14.04    0.59
+w59 L10.H14      0.12       0.01   0.01  34.29    0.52
+    L10.H19      0.20       0.11   0.08  29.24    0.69
+    L11.H22      0.21       0.07   0.04  30.06    0.67
+    L11.H24      0.29       0.26   0.25  24.47    0.75
+    L11.H27      0.44       0.25   0.23  22.64    0.78
+    L13.H16      0.57       1.36   1.21   1.33    0.98
+    L13.H17      0.66       1.74   0.83   2.07    1.19
+    L13.H18      0.63       1.49   0.84   3.37    1.10
+    L13.H20      0.74       1.52   0.97   1.76    1.11
+    L13.H4       1.12       1.24   0.92   1.36    1.09
+    L6.H9        0.28       0.48   0.38  25.90    0.55
+
+Non-sink only: share of non-sink attention going to math (symbol+math word) vs 'other' narrative words
+  w05 L10.H14  math share R 0.600 F 0.585 | other R 0.210 F 0.226 | AUC(math share -> robust) 0.53
+  w05 L10.H19  math share R 0.572 F 0.543 | other R 0.323 F 0.355 | AUC(math share -> robust) 0.61
+  w05 L11.H22  math share R 0.631 F 0.618 | other R 0.183 F 0.199 | AUC(math share -> robust) 0.49
+  w05 L11.H24  math share R 0.540 F 0.523 | other R 0.313 F 0.335 | AUC(math share -> robust) 0.58
+  w05 L11.H27  math share R 0.531 F 0.523 | other R 0.277 F 0.305 | AUC(math share -> robust) 0.54
+  w05 L13.H16  math share R 0.549 F 0.510 | other R 0.328 F 0.351 | AUC(math share -> robust) 0.60
+  w05 L13.H17  math share R 0.624 F 0.599 | other R 0.253 F 0.271 | AUC(math share -> robust) 0.55
+  w05 L13.H18  math share R 0.590 F 0.561 | other R 0.222 F 0.247 | AUC(math share -> robust) 0.52
+  w05 L13.H20  math share R 0.635 F 0.623 | other R 0.246 F 0.262 | AUC(math share -> robust) 0.53
+  w05 L13.H4   math share R 0.564 F 0.557 | other R 0.267 F 0.298 | AUC(math share -> robust) 0.50
+  w05 L6.H9    math share R 0.479 F 0.418 | other R 0.350 F 0.425 | AUC(math share -> robust) 0.65
+  w59 L10.H14  math share R 0.912 F 0.928 | other R 0.018 F 0.011 | AUC(math share -> robust) 0.54
+  w59 L10.H19  math share R 0.814 F 0.854 | other R 0.092 F 0.064 | AUC(math share -> robust) 0.40
+  w59 L11.H22  math share R 0.850 F 0.868 | other R 0.047 F 0.039 | AUC(math share -> robust) 0.45
+  w59 L11.H24  math share R 0.692 F 0.741 | other R 0.183 F 0.160 | AUC(math share -> robust) 0.40
+  w59 L11.H27  math share R 0.671 F 0.685 | other R 0.155 F 0.161 | AUC(math share -> robust) 0.45
+  w59 L13.H16  math share R 0.529 F 0.496 | other R 0.346 F 0.384 | AUC(math share -> robust) 0.61
+  w59 L13.H17  math share R 0.621 F 0.582 | other R 0.243 F 0.283 | AUC(math share -> robust) 0.58
+  w59 L13.H18  math share R 0.606 F 0.559 | other R 0.247 F 0.308 | AUC(math share -> robust) 0.66
+  w59 L13.H20  math share R 0.570 F 0.536 | other R 0.272 F 0.319 | AUC(math share -> robust) 0.62
+  w59 L13.H4   math share R 0.509 F 0.517 | other R 0.259 F 0.304 | AUC(math share -> robust) 0.49
+  w59 L6.H9    math share R 0.597 F 0.577 | other R 0.271 F 0.307 | AUC(math share -> robust) 0.54
+
+Pooled over 11 heads x 2 windows: math share R 0.622 F 0.609, AUC 0.54
+
+===== narrative fraction of the problem text (share of 'other' tokens) vs robustness
+AUC(narr -> fragile) pooled: 0.514  median narr 0.259
+  Qwen3.5-4B                   n=12 AUC 0.36
+  Skywork-OR1-Math-7B          n=48 AUC 0.63
+  Olmo-3-7B-Think              n= 9 AUC 0.32
+  DeepSeek-R1-0528-Qwen3-8B    n=12 AUC 0.52
+  gpt-oss-120b:high            n=15 AUC 0.35
+  gpt-oss-120b:low             n= 7 AUC 0.40
+  gpt-oss-120b:medium          n=15 AUC 0.60
+labelgen (Skywork/DeepSeek, 38): corr(narr, distract drop) 0.16  corr(narr, max_drop) 0.2

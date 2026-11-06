@@ -39,6 +39,14 @@ Each case has, at every layer: ``last_prompt`` (last prompt token), ``resp_mean`
   generation; SLT: last token of the greedy response) over ``--sep-block`` adjacent
   layers, the block picked per model by held-out SE AUROC on the SEP data alone.
   Feature = -probe logit on each case, z-scored within model.
+* ``coe``: Chain-of-Embedding (Wang et al., ICLR 2025; reference ``score.py`` in
+  Alsace08/Chain-of-Embedding), label-free. The chain is the response-mean hidden state at
+  every layer h_0..h_L (embedding layer included). Per step, magnitude
+  ||h_{l+1} - h_l|| / ||h_L - h_0|| and angle arccos(cos(h_l, h_{l+1})) / arccos(cos(h_0, h_L));
+  CoE-R = mean magnitude - mean angle, CoE-C = |mean of magnitude * e^{i angle}|. The paper
+  reads higher as "more likely correct"; here the features (``--coe-feats``) go through the
+  usual within-model z-score and logistic, so the sign is learned. ``--coe-site`` pools over
+  a CoT window instead (e.g. ``seg_0_9``).
 * ``perturb_direction_sup``: as above plus a supervised direction in shift
   space, diff-in-means of the shift vectors mean_k(h(dX_k) - h(X)) between
   robust and non-robust training problems.
@@ -49,6 +57,7 @@ from __future__ import annotations
 import json
 
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
@@ -247,7 +256,27 @@ def residual_features(acts, models, site, frac, feats):
     return out
 
 
+def coe_features(H: np.ndarray) -> dict:
+    """Chain-of-Embedding features of one chain H (layers x dim), as in the reference score.py."""
+    H = H.astype(np.float64)
+
+    def angle(a, b):
+        return np.arccos(np.clip(a @ b / (np.linalg.norm(a) * np.linalg.norm(b)), -1.0, 1.0))
+
+    mag = np.linalg.norm(np.diff(H, axis=0), axis=1) / np.linalg.norm(H[-1] - H[0])
+    ang = np.array([angle(H[l], H[l + 1]) for l in range(len(H) - 1)]) / angle(H[0], H[-1])
+    return {"coe_r": mag.mean() - ang.mean(), "coe_c": np.hypot((mag * np.cos(ang)).mean(), (mag * np.sin(ang)).mean()),
+            "coe_mag": mag.mean(), "coe_ang": ang.mean(), "coe_mag_var": mag.var(), "coe_ang_var": ang.var()}
+
+
 def register(methods, cv):
+    def coe(cases, args):
+        acts = load_acts(cases, cv)
+        site = args.coe_site
+        feats = list(args.coe_feats)
+        table = pd.DataFrame([coe_features(a[site]) for a in acts], index=cases.index)[feats]
+        return table, f"Chain-of-Embedding {'+'.join(feats)} on {site} (label-free features)"
+
     def pca_probe(cases, args):
         acts = load_acts(cases, cv)
         y = cases.is_robust.astype(bool).to_numpy()
@@ -282,6 +311,7 @@ def register(methods, cv):
                          f"k in {list(ks)}; C in {list(Cs)} ({sel})")
 
     methods["pca_probe"] = ("whitebox", pca_probe)
+    methods["coe"] = ("whitebox", coe)
 
     def shift_resid(cases, args):
         acts = load_acts(cases, cv)

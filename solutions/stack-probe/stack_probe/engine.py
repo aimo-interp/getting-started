@@ -50,12 +50,16 @@ BORROW = 1.5
 FLOOR = 0.85
 SPEED_MARGIN = 0.9
 DEFAULT_EFFORT = "medium"
-# Per-stream decode speed (tok/s) with 8 streams on the Codabench GPU (2026-10-29 log) and load time (s).
-SPEED_PRIOR = {"Qwen/Qwen3.5-4B": 54.0, "Skywork/Skywork-OR1-Math-7B": 58.0,
-               "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": 42.0, "allenai/Olmo-3-7B-Think": 25.0,
-               "openai/gpt-oss-120b": 25.0}
-LOAD_PRIOR = {"openai/gpt-oss-120b": 90.0}
-DEFAULT_LOAD = 25.0
+# Decode steps/s of the joint greedy + 8-sample batch on the Codabench GPU (2026-10-31 stack-probe log)
+# and load time (s; README: ~2 s for 4-8B, ~4 s for gpt-oss from the warm cache).
+SPEED_PRIOR = {"Qwen/Qwen3.5-4B": 47.0, "Skywork/Skywork-OR1-Math-7B": 38.0,
+               "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": 28.0, "allenai/Olmo-3-7B-Think": 23.0,
+               "openai/gpt-oss-120b": 24.0}
+LOAD_PRIOR = {"openai/gpt-oss-120b": 6.0}
+DEFAULT_LOAD = 3.0
+# Thinking budget a model's call is given time to reach regardless of its cost share (transcript-probe
+# reached 8192 on Skywork; the joint decode needs ~255 s for it).
+MIN_TOKENS = {"Skywork/Skywork-OR1-Math-7B": 8192}
 COST_TOKENS = 8192  # the budget the cost weights are computed at
 _STATE = Path(tempfile.gettempdir()) / (
     "stack_probe_clock_" + hashlib.sha1(str(ARTIFACT.parent.parent).encode()).hexdigest()[:12] + ".json")
@@ -227,6 +231,11 @@ def are_robust(model_id: str, reasoning_effort: str, problems: list[str]) -> lis
     n = len(problems)
     mean_cost = float(np.mean([_cost(m, _state) for m in art["models"]]))
     cap = _call_cap(left, n, _state["seen"], _cost(model_id, _state), mean_cost)
+    if _base(model_id) in MIN_TOKENS:
+        b = _base(model_id)
+        floor = n * (MIN_TOKENS[b] / (SPEED_MARGIN * SPEED_PRIOR[b]) + CALL_RESERVE_SECONDS) \
+            + LOAD_PRIOR.get(b, DEFAULT_LOAD)
+        cap = max(cap, min(floor, left - MIN_SECONDS))
     first_call = _state["seen"] == 0
     _state["seen"] += n
     _save_state(_state)
